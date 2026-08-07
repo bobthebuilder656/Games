@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Pixel Quest</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #12122a; font-family: 'Trebuchet MS', Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 16px; color: #fff; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1 { font-size: 30px; letter-spacing: 3px; text-shadow: 3px 3px 0 #e94560, 6px 6px 0 rgba(0,0,0,.4); }
+  .sub { color: #98a; font-size: 13px; margin: 4px 0 16px; }
+
+  .pickLabel { font-size:15px; margin-bottom:10px; }
+  #chars { display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:12px; max-width:640px; margin:0 auto 16px; }
+  .card { background:#16213e; border:3px solid #0f3460; border-radius:12px; padding:10px 6px; cursor:pointer; transition:.15s; }
+  .card:hover { border-color:#e94560; transform:translateY(-4px); }
+  .card.sel { border-color:#ffd700; background:#1f2b4d; }
+  .card canvas { display:block; margin:0 auto 5px; }
+  .card .nm { font-weight:bold; font-size:13.5px; }
+  .card .ab { font-size:10.5px; color:#8fd; margin-top:2px; }
+  #levelPick { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:14px; }
+  .lvl { background:#16213e; border:3px solid #0f3460; border-radius:10px; padding:9px 16px; cursor:pointer; font-weight:bold; font-size:13.5px; transition:.15s; }
+  .lvl:hover { border-color:#e94560; transform:translateY(-3px); }
+  .lvl.sel { border-color:#ffd700; background:#1f2b4d; }
+  .lvl.locked { opacity:.42; cursor:not-allowed; border-color:#2a2a3e; }
+  .lvl.locked:hover { transform:none; border-color:#2a2a3e; }
+  .lvl .lock { font-size:11px; color:#667; }
+  #saveInfo { color:#8fd; font-size:12.5px; margin:2px 0 14px; min-height:18px; }
+  #saveInfo b { color:#ffd700; }
+  .lvl small { display:block; font-weight:normal; color:#89a; font-size:10.5px; margin-top:2px; }
+
+  #hud { display:flex; gap:18px; background:rgba(0,0,0,.6); padding:8px 20px; border-radius:8px; margin-bottom:8px; font-weight:bold; font-size:15px; flex-wrap:wrap; justify-content:center; }
+  #timerBox.low { color:#ff5252; }
+  #timerBox { color:#ffd700; }
+  canvas#game { background:#5c94fc; border:4px solid #0f3460; border-radius:8px; max-width:100%; box-shadow:0 8px 0 rgba(0,0,0,.4); }
+  #msg { margin-top:10px; font-size:19px; min-height:26px; text-align:center; font-weight:bold; }
+  #hint { margin-top:8px; color:#98a; font-size:12.5px; text-align:center; max-width:660px; line-height:1.7; }
+  button { padding:9px 20px; font-size:15px; border:none; border-radius:8px; background:#e94560; color:#fff; font-weight:bold; cursor:pointer; box-shadow:0 4px 0 #a32b3f; margin:6px 4px; }
+  button:active { box-shadow:0 1px 0 #a32b3f; transform:translateY(3px); }
+  button.alt { background:#0f3460; box-shadow:0 4px 0 #08203d; }
+  .hidden { display:none !important; }
+
+  /* ---------- touch controls: a solid bar BELOW the game ---------- */
+  #stage { position:relative; width:100%; display:flex; justify-content:center; }
+  #touch { display:none; }
+  .tbtn {
+    border-radius:16px; background:#0f3460; border:2px solid rgba(255,255,255,.3);
+    color:#fff; font-weight:bold;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 0 #08203d; margin:0; padding:0;
+    touch-action:none; -webkit-user-select:none;
+  }
+  .tbtn:active { background:#e94560; transform:translateY(3px); box-shadow:0 1px 0 #a32b3f; }
+
+  /* ---------- rotate-your-phone hint ---------- */
+  #rotate {
+    display:none; position:fixed; inset:0; z-index:99;
+    background:#12122a; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:30px; gap:14px;
+  }
+  #rotate .ico { font-size:64px; animation:tilt 1.6s ease-in-out infinite; }
+  @keyframes tilt { 0%,100%{transform:rotate(0)} 50%{transform:rotate(90deg)} }
+  #rotate .t { font-size:20px; font-weight:bold; }
+  #rotate .d { font-size:14px; color:#98a; max-width:280px; line-height:1.6; }
+
+  @media (hover:none) {
+    #touch { display:flex; gap:14px; margin-top:10px; align-items:center; justify-content:center; }
+    .tpad { display:flex; gap:12px; }
+    #bL, #bR { width:80px; height:64px; font-size:26px; }
+    #bJ { width:130px; height:64px; font-size:18px; background:#e94560; box-shadow:0 4px 0 #a32b3f; }
+  }
+
+  /* ---------- phone layout ---------- */
+  @media (hover:none) and (orientation:portrait) {
+    #rotate { display:flex; }
+  }
+
+  /* ---------- PHONE, LANDSCAPE: game on top, controls underneath ---------- */
+  @media (hover:none) and (orientation:landscape) {
+    body { padding:0; margin:0; justify-content:flex-start; overflow:hidden; height:100vh; }
+    h1, .sub, #hint { display:none; }
+
+    #playArea { width:100vw; height:100vh; justify-content:flex-start; gap:0; }
+
+    #hud {
+      margin:0; padding:3px 10px; font-size:12px; gap:10px;
+      border-radius:0; width:100%; justify-content:center; flex-shrink:0;
+    }
+    #stage { flex-shrink:0; }
+    canvas#game { border:none; border-radius:0; box-shadow:none; display:block; }
+
+    #msg {
+      position:absolute; top:34px; left:0; right:0; z-index:20;
+      margin:0; font-size:16px; pointer-events:none;
+      text-shadow:0 2px 6px #000, 0 0 12px #000;
+    }
+
+    #touch {
+      display:flex !important; width:100%; flex:1;
+      align-items:center; justify-content:space-between;
+      padding:4px 12px; gap:12px; background:#0a0a1c; flex-shrink:0;
+    }
+    .tpad { display:flex; gap:12px; }
+    #bL, #bR { width:88px; height:100%; min-height:56px; font-size:30px; }
+    #bJ { width:150px; height:100%; min-height:56px; font-size:19px;
+          background:#e94560; box-shadow:0 4px 0 #a32b3f; }
+    #bJ:active { background:#ff6b81; }
+
+    /* button row lives at the bottom; hide desktop-only buttons */
+    #playArea > div:last-of-type { display:none; }
+  }
+
+  #backLink {
+    position:fixed; top:10px; left:10px; z-index:200;
+    background:rgba(0,0,0,.55); color:#fff; text-decoration:none;
+    padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold;
+    border:1px solid rgba(255,255,255,.2); font-family:'Trebuchet MS',Arial,sans-serif;
+  }
+  #backLink:hover { background:rgba(0,0,0,.8); }
+  @media (hover:none) and (orientation:landscape) { #backLink { top:4px; left:4px; padding:4px 9px; font-size:11px; } }
+</style>
+</head>
+<body>
+<a id="backLink" href="index.html">← Menu</a>
+
+<div id="rotate">
+  <div class="ico">📱</div>
+  <div class="t">Turn your phone sideways</div>
+  <div class="d">Pixel Quest plays best in landscape. Rotate your device to start.</div>
+</div>
+
+<h1>PIXEL QUEST</h1>
+<div class="sub">4 levels · boss fight · shields · double jump</div>
+
+<div id="select">
+  <div class="pickLabel">Choose your hero</div>
+  <div id="chars"></div>
+  <div class="pickLabel" style="margin-top:6px;">Start from level</div>
+  <div id="levelPick"></div>
+  <div id="saveInfo"></div>
+  <button id="startBtn">Start game</button>
+  <button id="wipeBtn" class="alt">🗑 Reset progress</button>
+</div>
+
+<div id="playArea" class="hidden" style="display:flex;flex-direction:column;align-items:center;">
+  <div id="hud">
+    <div>❤️ <span id="lives">3</span></div>
+    <div>🪙 <span id="coins">0</span>/<span id="totalCoins">0</span></div>
+    <div>⭐ <span id="score">0</span></div>
+    <div id="timerBox">⏱ <span id="timer">120</span></div>
+    <div>🏁 <span id="level">1</span>/4</div>
+  </div>
+  <div id="stage">
+    <canvas id="game" width="840" height="470"></canvas>
+  </div>
+  <div id="touch">
+    <div class="tpad">
+      <button class="tbtn" id="bL" aria-label="Move left">◀</button>
+      <button class="tbtn" id="bR" aria-label="Move right">▶</button>
+    </div>
+    <button class="tbtn" id="bJ" aria-label="Jump">JUMP ▲</button>
+  </div>
+  <div id="msg"></div>
+  <div>
+    <button id="musicBtn" class="alt">🎵 Music on</button>
+    <button id="sfxBtn" class="alt">🔊 SFX on</button>
+    <button id="restartBtn" class="alt">🔄 Restart</button>
+    <button id="menuBtn" class="alt">👤 Menu</button>
+    <button id="fpsBtn" class="alt">📊 FPS</button>
+  </div>
+  <div id="hint">
+    Arrows or A D to move &nbsp;·&nbsp; ↑ / W / Space to jump &nbsp;·&nbsp; jump again mid-air for a <b>double jump</b><br>
+    Tap jump for a small hop, hold for a big one &nbsp;·&nbsp; land on enemies to squash them<br>
+    🛡️ shield = 3.5 seconds of safety &nbsp;·&nbsp; 💚 extra life &nbsp;·&nbsp; +1 life for finishing a level
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CHARACTERS
+   ============================================================ */
+const CHARACTERS = [
+  { id:'bolt',  name:'Bolt',  ability:'Balanced',      body:'#2e86de', accent:'#ffd32a', skin:'#ffdca8', hat:'#e94560', speed:5.0, jump:13.4 },
+  { id:'rosie', name:'Rosie', ability:'Higher jump',   body:'#ff6b9d', accent:'#ffffff', skin:'#ffe0c0', hat:'#c44569', speed:4.8, jump:14.4 },
+  { id:'gizmo', name:'Gizmo', ability:'Fast runner',   body:'#26de81', accent:'#0be881', skin:'#d1f7e0', hat:'#20bf6b', speed:5.9, jump:12.8 },
+  { id:'nova',  name:'Nova',  ability:'Floaty falls',  body:'#a55eea', accent:'#d6a2e8', skin:'#f3e0ff', hat:'#8854d0', speed:4.9, jump:13.2, floaty:true },
+  { id:'tank',  name:'Tank',  ability:'Extra life',    body:'#f0932b', accent:'#ffbe76', skin:'#ffe5c0', hat:'#cc7a1a', speed:4.6, jump:12.8, bonusLife:true },
+  { id:'pip',   name:'Pip',   ability:'Tiny + nimble', body:'#00d2d3', accent:'#7efff5', skin:'#e0ffff', hat:'#01a3a4', speed:5.5, jump:13.6, small:true },
+];
+let chosen = CHARACTERS[0];
+
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+
+function drawHero(c, ch, x, y, w, h, facing, frame, shielded){
+  const bob = Math.sin(frame/5)*1.2; y += bob;
+  const swing = Math.sin(frame/4)*3;
+  c.fillStyle='#333';
+  c.fillRect(x+4, y+h-8, 7, 8+swing*0.25);
+  c.fillRect(x+w-11, y+h-8, 7, 8-swing*0.25);
+  c.fillStyle=ch.body; roundRect(c,x+2,y+12,w-4,h-20,5); c.fill();
+  c.fillStyle=ch.accent; roundRect(c,x+7,y+18,w-14,h-30,4); c.fill();
+  c.fillStyle=ch.skin; c.beginPath(); c.arc(x+w/2,y+10,10,0,Math.PI*2); c.fill();
+  c.fillStyle=ch.hat; c.beginPath(); c.arc(x+w/2,y+8,10,Math.PI,0); c.fill();
+  c.fillRect(x+w/2-12+(facing>0?4:0), y+6, 14, 3);
+  const ex = x+w/2+facing*2;
+  c.fillStyle='#fff'; c.beginPath(); c.arc(ex-3,y+10,2.6,0,Math.PI*2); c.arc(ex+3,y+10,2.6,0,Math.PI*2); c.fill();
+  c.fillStyle='#000'; c.beginPath(); c.arc(ex-3+facing,y+10,1.3,0,Math.PI*2); c.arc(ex+3+facing,y+10,1.3,0,Math.PI*2); c.fill();
+  c.strokeStyle='#00000055'; c.lineWidth=1.2;
+  c.beginPath(); c.arc(ex,y+13,3,0.2,Math.PI-0.2); c.stroke();
+
+  // shield bubble drawn ON TOP so it reads clearly
+  if (shielded){
+    const pulse = 1 + Math.sin(frame/6)*0.05;
+    c.save();
+    c.strokeStyle='#4dd0ff'; c.lineWidth=3;
+    c.globalAlpha=0.9;
+    c.beginPath(); c.ellipse(x+w/2, y+h/2, w*0.85*pulse, h*0.68*pulse, 0,0,Math.PI*2); c.stroke();
+    c.fillStyle='rgba(77,208,255,.18)'; c.fill();
+    c.globalAlpha=1; c.restore();
+  }
+}
+
+/* ============================================================
+   AUDIO
+   ============================================================ */
+let audioCtx=null, sfxOn=true, musicOn=true;
+function ac(){ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function tone(freq,dur=0.1,type='square',vol=0.13){
+  if(!sfxOn) return;
+  try{ const a=ac(),o=a.createOscillator(),g=a.createGain();
+    o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+dur);
+    o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+dur);
+  }catch(e){}
+}
+function sweep(f1,f2,dur=0.2,type='square',vol=0.15){
+  if(!sfxOn) return;
+  try{ const a=ac(),o=a.createOscillator(),g=a.createGain();
+    o.type=type; o.frequency.setValueAtTime(f1,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(Math.max(f2,1),a.currentTime+dur);
+    g.gain.setValueAtTime(vol,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+dur);
+    o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+dur);
+  }catch(e){}
+}
+const SFX = {
+  jump:()=>sweep(320,660,0.12),
+  dbl:()=>sweep(560,980,0.14,'triangle'),
+  coin:()=>{tone(988,0.06);setTimeout(()=>tone(1319,0.1),55);},
+  stomp:()=>sweep(420,90,0.15,'sawtooth'),
+  hurt:()=>sweep(420,70,0.38,'sawtooth'),
+  shield:()=>{[440,554,659,880].forEach((f,i)=>setTimeout(()=>tone(f,0.13,'sine',0.16),i*70));},
+  shieldOff:()=>{sweep(700,300,0.25,'sine',0.1);},
+  block:()=>{tone(1200,0.08,'sine',0.18);setTimeout(()=>tone(900,0.12,'sine',0.14),70);},
+  life:()=>{[523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>tone(f,0.12,'triangle'),i*80));},
+  win:()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.18,'triangle'),i*130));},
+  over:()=>{[440,349,262,196].forEach((f,i)=>setTimeout(()=>tone(f,0.3,'triangle'),i*200));},
+  bossHit:()=>sweep(200,60,0.3,'sawtooth',0.2),
+  bossDie:()=>{[300,240,180,120,80].forEach((f,i)=>setTimeout(()=>sweep(f,f*0.4,0.3,'sawtooth',0.2),i*160));},
+  tick:()=>tone(880,0.05,'square',0.08)
+};
+
+const MELODIES = {
+  normal:{tempo:150,notes:[523,659,784,659,523,587,659,587,494,587,698,587,523,659,523,392,
+                           523,659,784,880,784,659,587,523,494,523,587,659,523,494,440,392]},
+  boss:  {tempo:190,notes:[262,262,311,262,233,233,262,233,196,196,233,196,175,196,233,262,
+                           262,311,349,311,262,233,196,175,196,233,262,311,349,311,262,196]}
+};
+let musicTimer=null, musicStep=0, currentTrack='normal';
+function startMusic(track){
+  stopMusic(); currentTrack=track||'normal'; musicStep=0;
+  if(!musicOn) return;
+  const m=MELODIES[currentTrack];
+  musicTimer=setInterval(()=>{
+    if(!musicOn) return;
+    const n=m.notes[musicStep%m.notes.length];
+    try{
+      const a=ac();
+      const o=a.createOscillator(),g=a.createGain();
+      o.type='square';o.frequency.value=n;
+      g.gain.setValueAtTime(0.045,a.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.22);
+      o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+0.22);
+      if(musicStep%2===0){
+        const b=a.createOscillator(),bg=a.createGain();
+        b.type='triangle';b.frequency.value=n/4;
+        bg.gain.setValueAtTime(0.06,a.currentTime);
+        bg.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.3);
+        b.connect(bg);bg.connect(a.destination);b.start();b.stop(a.currentTime+0.3);
+      }
+    }catch(e){}
+    musicStep++;
+  }, 60000/MELODIES[currentTrack].tempo/2);
+}
+function stopMusic(){ if(musicTimer){clearInterval(musicTimer);musicTimer=null;} }
+
+/* ============================================================
+   LEVELS
+   Level 1 is a silent tutorial: forced double jump, then a
+   single slow enemy placed so stomping is the natural move.
+   Coin arcs trace the intended jump path throughout.
+   ============================================================ */
+function makeLevels(){ return [
+ /* ---------- L1: TUTORIAL ---------- */
+ { name:'Green hills', width:1800, theme:'grass', time:100,
+   platforms:[
+     {x:0,y:415,w:440,h:55},                    // safe start
+     {x:300,y:330,w:110,h:20},                  // easy single jump (teaches jump)
+     {x:520,y:415,w:320,h:55},                  // small gap: one jump
+     {x:640,y:320,w:110,h:20},                  // optional height
+     {x:900,y:375,w:80,h:18},                   // stepping stone in the wide gap
+     {x:1040,y:415,w:280,h:55},                 // wide gap: double jump OR use the stone
+     {x:1120,y:310,w:120,h:20},
+     {x:1420,y:415,w:380,h:55},                 // final stretch
+     {x:1490,y:325,w:120,h:20}
+   ],
+   movers:[{x:855,y:375,w:70,h:16,axis:'x',min:845,max:975,speed:1.7}],
+   spikes:[],
+   powerups:[{x:355,y:295,type:'shield'},{x:1180,y:275,type:'life'}],
+   // coin arcs trace each jump
+   coins:[
+     {x:250,y:375},{x:300,y:340},{x:355,y:300},              // arc up to first ledge
+     {x:445,y:360},{x:480,y:335},{x:515,y:360},              // arc over first gap
+     {x:690,y:285},
+     {x:870,y:345},{x:940,y:305},{x:1000,y:325},{x:1050,y:360},// arc over the wide gap
+     {x:1340,y:360},{x:1380,y:335},{x:1420,y:360},
+     {x:1550,y:290},{x:1680,y:375}
+   ],
+   enemies:[
+     {x:640,y:383,range:[560,830],speed:1.6},               // first enemy: still the gentlest
+     {x:1190,y:383,range:[1050,1310],speed:2.0},
+     {x:1640,y:383,range:[1430,1790],speed:2.3}
+   ],
+   flag:{x:1750,y:335} },
+
+ /* ---------- L2: EASED ---------- */
+ { name:'Broken bridge', width:2000, theme:'grass', time:112,
+   platforms:[{x:0,y:415,w:450,h:55},{x:520,y:415,w:300,h:55},{x:870,y:415,w:320,h:55},
+     {x:1250,y:415,w:280,h:55},{x:1600,y:415,w:400,h:55},
+     {x:210,y:300,w:120,h:20},{x:580,y:320,w:120,h:20},{x:930,y:285,w:150,h:20},
+     {x:1290,y:315,w:130,h:20},{x:1650,y:280,w:150,h:20},{x:1840,y:340,w:120,h:20}],
+   movers:[{x:445,y:365,w:90,h:16,axis:'x',min:430,max:530,speed:2.0},
+           {x:1190,y:350,w:90,h:16,axis:'x',min:1180,max:1260,speed:2.0},
+           {x:800,y:340,w:90,h:16,axis:'y',min:280,max:390,speed:1.8}],
+   spikes:[],
+   powerups:[{x:250,y:270,type:'shield'},{x:940,y:255,type:'life'}],
+   coins:[
+     {x:170,y:340},{x:210,y:305},{x:270,y:270},
+     {x:450,y:375},{x:485,y:350},{x:520,y:375},
+     {x:640,y:285},{x:830,y:375},{x:880,y:345},{x:1000,y:245},
+     {x:1200,y:315},{x:1350,y:275},{x:1560,y:370},{x:1720,y:240},{x:1890,y:300}
+   ],
+   enemies:[{x:600,y:383,range:[540,800],speed:2.1},{x:950,y:383,range:[890,1180],speed:2.2},
+            {x:1350,y:383,range:[1260,1520],speed:2.2},{x:1750,y:383,range:[1610,1970],speed:2.5}],
+   flag:{x:1940,y:335} },
+
+ /* ---------- L3: TONED DOWN ---------- */
+ { name:'Crystal caves', width:2200, theme:'cave', time:118,
+   platforms:[{x:0,y:415,w:340,h:55},{x:430,y:415,w:180,h:55},{x:710,y:415,w:180,h:55},
+     {x:990,y:415,w:180,h:55},{x:1270,y:415,w:180,h:55},{x:1550,y:415,w:180,h:55},{x:1830,y:415,w:370,h:55},
+     {x:160,y:320,w:110,h:20},{x:450,y:335,w:100,h:20},{x:730,y:290,w:100,h:20},
+     {x:1010,y:335,w:100,h:20},{x:1290,y:275,w:100,h:20},{x:1570,y:320,w:100,h:20},
+     {x:1900,y:300,w:120,h:20},{x:2080,y:245,w:120,h:20}],
+   movers:[{x:620,y:365,w:85,h:16,axis:'x',min:610,max:715,speed:2.4},
+           {x:900,y:340,w:85,h:16,axis:'y',min:275,max:395,speed:2.2},
+           {x:1180,y:365,w:85,h:16,axis:'x',min:1170,max:1275,speed:2.4},
+           {x:1450,y:365,w:85,h:16,axis:'x',min:1440,max:1555,speed:2.6},
+           {x:1760,y:340,w:85,h:16,axis:'y',min:275,max:395,speed:2.2}],
+   spikes:[],
+   powerups:[{x:200,y:290,type:'shield'},{x:1330,y:245,type:'life'},{x:1950,y:270,type:'shield'}],
+   coins:[
+     {x:120,y:360},{x:160,y:330},{x:210,y:290},
+     {x:390,y:370},{x:430,y:345},{x:490,y:300},
+     {x:660,y:370},{x:710,y:340},{x:770,y:255},
+     {x:950,y:370},{x:1000,y:340},{x:1060,y:300},
+     {x:1240,y:370},{x:1340,y:240},{x:1600,y:285},
+     {x:1800,y:370},{x:1950,y:265},{x:2120,y:205},{x:2170,y:205}
+   ],
+   enemies:[{x:450,y:383,range:[430,605],speed:2.7},{x:1010,y:383,range:[990,1165],speed:2.9},
+            {x:1290,y:383,range:[1270,1445],speed:2.9},{x:1570,y:383,range:[1550,1725],speed:3.0},
+            {x:1930,y:383,range:[1830,2185],speed:3.0},
+            {x:1320,y:248,range:[1290,1385],speed:2.1}],
+   flag:{x:2160,y:335} },
+
+ /* ---------- L4: APPROACH + BOSS ARENA ---------- */
+ { name:'The Goober King', width:1900, theme:'sky', time:150, isBoss:true,
+   platforms:[
+     // calm approach stretch — breathe, collect, top up
+     {x:0,y:415,w:520,h:55},
+     {x:170,y:325,w:130,h:20},
+     {x:380,y:280,w:130,h:20},
+     // gate into the arena
+     {x:600,y:415,w:1300,h:55},
+     {x:730,y:320,w:140,h:18},{x:1010,y:265,w:140,h:18},{x:1310,y:265,w:140,h:18},{x:1600,y:320,w:140,h:18}
+   ],
+   movers:[{x:1150,y:350,w:90,h:16,axis:'y',min:290,max:398,speed:2.4},
+           {x:540,y:370,w:80,h:16,axis:'x',min:525,max:610,speed:2.2},
+           {x:880,y:330,w:85,h:16,axis:'x',min:870,max:1000,speed:2.3}],
+   spikes:[],
+   powerups:[{x:235,y:295,type:'shield'},{x:445,y:250,type:'life'},{x:1650,y:290,type:'shield'}],
+   coins:[
+     {x:110,y:370},{x:170,y:335},{x:235,y:295},
+     {x:320,y:300},{x:380,y:275},{x:445,y:250},
+     {x:540,y:375},{x:600,y:375},
+     {x:800,y:290},{x:1080,y:235},{x:1380,y:235},{x:1670,y:290}
+   ],
+   enemies:[{x:300,y:383,range:[240,470],speed:2.2},
+            {x:1050,y:243,range:[1015,1130],speed:2.3},
+            {x:1640,y:298,range:[1610,1725],speed:2.4}],
+   boss:{x:1400,y:340,w:90,h:75,hp:7,maxHp:7,vx:-2.8,vy:0,jumpTimer:100,hitFlash:0,alive:true,minX:640},
+   noFlag:true, flag:{x:1010,y:335} }
+];}
+
+/* ============================================================
+   SAVE SYSTEM
+   Persists to localStorage when available. Falls back to an
+   in-memory object so the game still runs anywhere.
+   ============================================================ */
+const SAVE_KEY='pixelquest.save.v1';
+const DEFAULT_SAVE={ unlocked:1, best:0, cleared:[], hero:'bolt' };
+let memoryFallback=null;
+let save={...DEFAULT_SAVE};
+
+function loadSave(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(raw) save={...DEFAULT_SAVE, ...JSON.parse(raw)};
+  }catch(e){
+    if(memoryFallback) save={...DEFAULT_SAVE, ...memoryFallback};
+  }
+}
+function writeSave(){
+  memoryFallback={...save};
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){}
+}
+function unlockLevel(i){                 // i is 0-based index of the level just cleared
+  if(!save.cleared.includes(i)) save.cleared.push(i);
+  save.unlocked = Math.max(save.unlocked, Math.min(i+2, 4));
+  writeSave();
+}
+function recordScore(sc){
+  if(sc > save.best){ save.best=sc; writeSave(); return true; }
+  return false;
+}
+function wipeSave(){
+  save={...DEFAULT_SAVE, cleared:[]};
+  memoryFallback=null;
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+}
+loadSave();
+
+/* ============================================================
+   ENGINE
+   ============================================================ */
+const canvas=document.getElementById('game'), ctx=canvas.getContext('2d');
+const W=canvas.width, H=canvas.height;
+const GRAVITY=0.78, FRICTION=0.78, ACCEL=1.5;
+const SHIELD_FRAMES = 210;   // 3.5 seconds at 60fps
+
+const el=id=>document.getElementById(id);
+let levels=makeLevels(), levelIndex=0, level=levels[0];
+let camX=0, score=0, frame=0, timeLeft=0, timerId=null;
+let gameOver=false, win=false, levelComplete=false, running=false;
+const keys={};
+
+const player = { x:50,y:300,w:30,h:40,vx:0,vy:0,onGround:false,facing:1,
+                 jumps:0,inv:0,shield:0,lives:3,standingOn:null,jumpHeld:false };
+
+function applyCharacter(){
+  player.w = chosen.small?24:30;
+  player.h = chosen.small?32:40;
+  player.lives = 3 + (chosen.bonusLife?1:0);
+}
+function resetPlayer(){ player.x=50; player.y=300; player.vx=0; player.vy=0; player.jumps=0; player.inv=80; player.shield=0; player.standingOn=null; }
+
+function loadLevel(i){
+  levelIndex=i; level=levels[i];
+  level.coins.forEach(c=>c.collected=false);
+  level.powerups.forEach(u=>u.taken=false);
+  level.enemies.forEach(e=>{e.dir=1;e.alive=true;});
+  level.movers.forEach(m=>{m.dir=1;});
+  if (level.boss) Object.assign(level.boss,{x:1400,y:340,vx:-2.8,vy:0,hp:7,maxHp:7,hitFlash:0,alive:true,jumpTimer:100});
+  resetPlayer(); camX=0; levelComplete=false;
+  el('totalCoins').textContent=level.coins.length;
+  el('level').textContent=i+1;
+  updateHud();
+  el('msg').textContent=level.name;
+  setTimeout(()=>{ if(!gameOver&&!win&&el('msg').textContent===level.name) el('msg').textContent=''; },1800);
+  lastTime=0; accumulator=0; fitCanvas();
+  startTimer(level.time);
+  startMusic(level.isBoss?'boss':'normal');
+}
+
+function startTimer(secs){
+  timeLeft=secs; el('timer').textContent=timeLeft; el('timerBox').classList.remove('low');
+  if(timerId) clearInterval(timerId);
+  timerId=setInterval(()=>{
+    if(!running||gameOver||win||levelComplete) return;
+    timeLeft--;
+    el('timer').textContent=Math.max(0,timeLeft);
+    if(timeLeft<=15){ el('timerBox').classList.add('low'); if(timeLeft>0) SFX.tick(); }
+    if(timeLeft<=0) timeUp();
+  },1000);
+}
+function timeUp(){
+  player.lives--; SFX.hurt(); updateHud();
+  if(player.lives<=0) endGame();
+  else { el('msg').textContent='⏰ Out of time!'; resetPlayer(); startTimer(level.time); }
+}
+function updateHud(){
+  el('coins').textContent=level.coins.filter(c=>c.collected).length;
+  el('score').textContent=score;
+  el('lives').textContent=Math.max(0,player.lives);
+}
+function overlap(a,b){ return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y; }
+function pbox(){ return {x:player.x,y:player.y,w:player.w,h:player.h}; }
+function down(list){ return list.some(k=>keys[k]); }
+const LEFT=['ArrowLeft','a','A'], RIGHT=['ArrowRight','d','D'], JUMP=['ArrowUp','w','W',' '];
+
+function update(){
+  if(!running||gameOver||win) return;
+  frame++;
+
+  for(const m of level.movers){
+    const bx=m.x,by=m.y;
+    if(m.axis==='x'){ m.x+=m.speed*m.dir; if(m.x<m.min){m.x=m.min;m.dir=1;} if(m.x>m.max){m.x=m.max;m.dir=-1;} }
+    else { m.y+=m.speed*m.dir; if(m.y<m.min){m.y=m.min;m.dir=1;} if(m.y>m.max){m.y=m.max;m.dir=-1;} }
+    if(player.standingOn===m){ player.x+=m.x-bx; player.y+=m.y-by; }
+  }
+
+  const solids=level.platforms.concat(level.movers);
+
+  if(down(LEFT)){ player.vx-=ACCEL; player.facing=-1; }
+  if(down(RIGHT)){ player.vx+=ACCEL; player.facing=1; }
+  player.vx*=FRICTION;
+  player.vx=Math.max(-chosen.speed,Math.min(chosen.speed,player.vx));
+  if(Math.abs(player.vx)<0.15) player.vx=0;
+
+  const jk=down(JUMP);
+  if(jk&&!player.jumpHeld){
+    if(player.onGround){ player.vy=-chosen.jump; player.jumps=1; player.onGround=false; SFX.jump(); }
+    else if(player.jumps===1){ player.vy=-chosen.jump*0.86; player.jumps=2; SFX.dbl(); puff(); }
+  }
+  if(!jk && player.vy<-4) player.vy*=0.86;
+  player.jumpHeld=jk;
+
+  let g=GRAVITY;
+  if(chosen.floaty && player.vy>0) g=GRAVITY*0.64;
+  player.vy+=g;
+  if(player.vy>17) player.vy=17;
+
+  player.x+=player.vx;
+  for(const s of solids) if(overlap(pbox(),s)){
+    if(player.vx>0) player.x=s.x-player.w; else if(player.vx<0) player.x=s.x+s.w;
+    player.vx=0;
+  }
+  player.y+=player.vy;
+  player.onGround=false; player.standingOn=null;
+  for(const s of solids) if(overlap(pbox(),s)){
+    if(player.vy>0){ player.y=s.y-player.h; player.vy=0; player.onGround=true; player.jumps=0; player.standingOn=s; }
+    else if(player.vy<0){ player.y=s.y+s.h; player.vy=0; }
+  }
+
+  if(player.x<0) player.x=0;
+  if(player.x+player.w>level.width) player.x=level.width-player.w;
+  if(player.y>H+120) hit(true);   // pits ignore the shield
+
+  if(player.shield>0){
+    player.shield--;
+    if(player.shield===0) SFX.shieldOff();
+  }
+  if(player.inv>0) player.inv--;
+
+  for(const u of level.powerups){
+    if(u.taken) continue;
+    if(overlap(pbox(),{x:u.x-13,y:u.y-13,w:26,h:26})){
+      u.taken=true;
+      if(u.type==='shield'){ player.shield=SHIELD_FRAMES; SFX.shield(); el('msg').textContent='🛡️ Shield up!'; }
+      else { player.lives++; SFX.life(); el('msg').textContent='💚 Extra life!'; }
+      setTimeout(()=>{ if(!gameOver&&!win&&!levelComplete) el('msg').textContent=''; },1300);
+      updateHud(); burst(u.x,u.y,'#4dd0ff');
+    }
+  }
+
+  for(const c of level.coins){
+    if(c.collected) continue;
+    if(overlap(pbox(),{x:c.x-11,y:c.y-11,w:22,h:22})){
+      c.collected=true; score+=50; SFX.coin(); updateHud(); burst(c.x,c.y,'#ffd700');
+    }
+  }
+
+  for(const e of level.enemies){
+    if(!e.alive) continue;
+    e.x+=e.speed*e.dir;
+    if(e.x<e.range[0]){e.x=e.range[0];e.dir=1;}
+    if(e.x>e.range[1]){e.x=e.range[1];e.dir=-1;}
+    const eb={x:e.x,y:e.y-26,w:30,h:26};
+    if(overlap(pbox(),eb) && player.inv<=0){
+      if(player.vy>0 && (player.y+player.h)-eb.y<22){
+        e.alive=false; player.vy=-9.5; player.jumps=1; score+=100; SFX.stomp(); burst(e.x+15,e.y-20,'#ff9f43'); updateHud();
+      } else if(player.shield>0){
+        // shield destroys the enemy instead of hurting you
+        e.alive=false; SFX.block(); burst(e.x+15,e.y-20,'#4dd0ff'); score+=50; updateHud();
+      } else hit();
+    }
+  }
+
+  if(level.boss && level.boss.alive) updateBoss();
+
+  if(!level.noFlag && !levelComplete && overlap(pbox(),{x:level.flag.x,y:level.flag.y,w:24,h:82})) finishLevel();
+
+  stepParticles();
+  camX=Math.max(0,Math.min(player.x-W/2+player.w/2, level.width-W));
+}
+
+function updateBoss(){
+  const b=level.boss;
+  b.x+=b.vx;
+  if(b.x<b.minX){ b.x=b.minX; b.vx=Math.abs(b.vx); }
+  if(b.x+b.w>level.width-60){ b.x=level.width-60-b.w; b.vx=-Math.abs(b.vx); }
+  b.jumpTimer--;
+  if(b.jumpTimer<=0 && b.y>=340){ b.vy=-13.5; b.jumpTimer=100-(b.maxHp-b.hp)*9; }
+  b.vy+=0.7; b.y+=b.vy;
+  if(b.y>340){ b.y=340; b.vy=0; }
+  if(b.hitFlash>0) b.hitFlash--;
+
+  const bb={x:b.x,y:b.y,w:b.w,h:b.h};
+  if(overlap(pbox(),bb) && player.inv<=0){
+    if(player.vy>0 && (player.y+player.h)-b.y<26 && b.hitFlash<=0){
+      b.hp--; b.hitFlash=38; player.vy=-12; player.jumps=1;
+      b.vx=(b.vx>0?1:-1)*(2.8+(b.maxHp-b.hp)*0.42);
+      score+=250; updateHud(); shake=10; burst(b.x+b.w/2,b.y,'#ff6b6b');
+      if(b.hp<=0){
+        b.alive=false; SFX.bossDie(); score+=1000; updateHud();
+        el('msg').textContent='👑 The Goober King falls!';
+        for(let i=0;i<50;i++) burst(b.x+b.w/2,b.y+30,'#ffd700');
+        setTimeout(()=>{ if(!gameOver) finishLevel(); }, 1800);
+      } else { SFX.bossHit(); el('msg').textContent='Boss HP: '+b.hp; }
+    } else if(player.shield>0 && b.hitFlash<=0){
+      // shield tanks a boss hit and knocks you clear
+      SFX.block(); player.shield=0; player.inv=50;
+      player.vx = (player.x < b.x ? -1 : 1) * 9; player.vy=-7;
+      burst(player.x+player.w/2, player.y+player.h/2, '#4dd0ff');
+      el('msg').textContent='🛡️ Shield blocked it!';
+    } else hit();
+  }
+}
+
+function hit(ignoreShield){
+  if(player.inv>0) return;
+  if(!ignoreShield && player.shield>0){
+    player.shield=0; player.inv=60; SFX.block();
+    burst(player.x+player.w/2,player.y+player.h/2,'#4dd0ff');
+    el('msg').textContent='🛡️ Shield blocked it!';
+    setTimeout(()=>{ if(!gameOver&&!win&&!levelComplete) el('msg').textContent=''; },1100);
+    return;
+  }
+  player.lives--; SFX.hurt(); player.shield=0;
+  if(player.lives<=0) endGame(); else resetPlayer();
+  updateHud();
+}
+function endGame(){
+  gameOver=true; stopMusic(); SFX.over();
+  const pb=recordScore(score);
+  el('msg').textContent='💀 Game over — score '+score+(pb?' · NEW BEST!':' · best '+save.best);
+}
+function finishLevel(){
+  levelComplete=true;
+  const all=level.coins.every(c=>c.collected);
+  score+=200+(all?500:0)+timeLeft*5;
+  player.lives++;
+  unlockLevel(levelIndex);
+  recordScore(score);
+  SFX.win(); setTimeout(SFX.life,500); updateHud();
+  el('msg').textContent = level.isBoss
+    ? '🏆 Victory! +'+(timeLeft*5)+' time bonus'
+    : (all?'🎉 Perfect clear! ':'🎉 Level complete! ')+'+1 life · +'+(timeLeft*5)+' time bonus';
+  setTimeout(nextLevel,1900);
+}
+function nextLevel(){
+  if(levelIndex<levels.length-1) loadLevel(levelIndex+1);
+  else {
+    win=true; stopMusic(); SFX.win();
+    const pb=recordScore(score);
+    el('msg').textContent='🏆 You beat Pixel Quest! Score '+score+(pb?' · NEW BEST!':' · best '+save.best);
+  }
+}
+
+let parts=[], shake=0;
+function burst(x,y,color){ for(let i=0;i<9;i++) parts.push({x,y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5-1.5,life:26,c:color}); }
+function puff(){ for(let i=0;i<7;i++) parts.push({x:player.x+player.w/2,y:player.y+player.h,vx:(Math.random()-.5)*3.4,vy:Math.random()*2,life:18,c:'#ffffffaa'}); }
+function stepParticles(){ parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.16;p.life--;}); parts=parts.filter(p=>p.life>0); if(shake>0)shake--; }
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const THEMES={
+  grass:{sky1:'#5c94fc',sky2:'#a8d8ff',dirt:'#8b5a2b',top:'#4caf50',hill:'#3d8b40'},
+  cave: {sky1:'#2c2c54',sky2:'#474787',dirt:'#4a3f5c',top:'#7d5fff',hill:'#3a3a63'},
+  sky:  {sky1:'#ff7675',sky2:'#ffd6a5',dirt:'#a4402c',top:'#ff7f50',hill:'#d1604a'}
+};
+function draw(){
+  const t=THEMES[level.theme]||THEMES.grass;
+  ctx.save();
+  if(shake>0) ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,t.sky1); g.addColorStop(1,t.sky2);
+  ctx.fillStyle=g; ctx.fillRect(-20,-20,W+40,H+40);
+  ctx.fillStyle=t.hill;
+  for(let i=0;i<9;i++){ const hx=(i*300-camX*0.25)%(W+400)-200; ctx.beginPath(); ctx.arc(hx,H-20,115,Math.PI,0); ctx.fill(); }
+  ctx.fillStyle='rgba(255,255,255,.78)';
+  for(let i=0;i<6;i++){ const cx=(i*290-camX*0.4)%(W+300)-150; cloud(cx,55+(i%3)*38); }
+
+  ctx.save(); ctx.translate(-camX,0);
+
+  for(const p of level.platforms){
+    ctx.fillStyle=t.dirt; roundRect(ctx,p.x,p.y,p.w,p.h,3); ctx.fill();
+    ctx.fillStyle=t.top; ctx.fillRect(p.x,p.y,p.w,9);
+    ctx.fillStyle='rgba(0,0,0,.12)';
+    for(let bx=p.x+8;bx<p.x+p.w-8;bx+=28) ctx.fillRect(bx,p.y+17,3,3);
+  }
+  for(const m of level.movers){
+    ctx.fillStyle='#ffa502'; roundRect(ctx,m.x,m.y,m.w,m.h,4); ctx.fill();
+    ctx.fillStyle='#ffd59e'; ctx.fillRect(m.x,m.y,m.w,4);
+  }
+  for(const u of level.powerups){
+    if(u.taken) continue;
+    const fl=Math.sin(frame/8)*3;
+    ctx.fillStyle = u.type==='shield' ? '#4dd0ff' : '#2ed573';
+    roundRect(ctx,u.x-13,u.y-13+fl,26,26,7); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 15px Arial'; ctx.textAlign='center';
+    ctx.fillText(u.type==='shield'?'🛡':'♥', u.x, u.y+6+fl);
+    ctx.textAlign='left';
+  }
+  for(const c of level.coins){
+    if(c.collected) continue;
+    const sw=Math.abs(Math.cos(frame/12))*10+2;
+    ctx.fillStyle='#ffd700';
+    ctx.beginPath(); ctx.ellipse(c.x,c.y+Math.sin(frame/16)*3,sw,11,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#c79100'; ctx.lineWidth=2; ctx.stroke();
+  }
+  for(const e of level.enemies){ if(e.alive) drawGoober(e.x,e.y,e.dir); }
+  if(level.boss && level.boss.alive) drawBoss(level.boss);
+
+  if(!level.noFlag){
+    ctx.fillStyle='#555'; ctx.fillRect(level.flag.x,level.flag.y,6,82);
+    ctx.fillStyle='#2ed573';
+    const fw=Math.sin(frame/10)*4;
+    ctx.beginPath(); ctx.moveTo(level.flag.x+6,level.flag.y+2);
+    ctx.lineTo(level.flag.x+44+fw,level.flag.y+14);
+    ctx.lineTo(level.flag.x+6,level.flag.y+28); ctx.fill();
+  }
+
+  parts.forEach(p=>{ ctx.fillStyle=p.c; ctx.fillRect(p.x,p.y,3.5,3.5); });
+
+  if(player.inv<=0 || Math.floor(player.inv/4)%2===0)
+    drawHero(ctx,chosen,player.x,player.y,player.w,player.h,player.facing,frame,player.shield>0);
+
+  ctx.restore();
+  ctx.restore();
+
+  // shield timer bar
+  if(player.shield>0){
+    const bw=160, bx=(W-bw)/2;
+    ctx.fillStyle='rgba(0,0,0,.5)'; roundRect(ctx,bx,12,bw,10,5); ctx.fill();
+    ctx.fillStyle='#4dd0ff'; roundRect(ctx,bx+1,13,(bw-2)*(player.shield/SHIELD_FRAMES),8,4); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+    ctx.fillText('SHIELD', W/2, 33); ctx.textAlign='left';
+  }
+
+  if(showFps){
+    ctx.fillStyle = fps<50 ? '#ff5252' : '#8fd';
+    ctx.font='bold 12px monospace';
+    ctx.fillText(fps+' fps', 10, 20);
+  }
+}
+function drawGoober(x,y,dir){
+  const wob=Math.sin(frame/5)*2;
+  ctx.fillStyle='#8b4513'; ctx.fillRect(x+5,y-5,6,5); ctx.fillRect(x+19,y-5,6,5);
+  ctx.fillStyle='#c0392b'; ctx.beginPath(); ctx.ellipse(x+15,y-14+wob*0.3,15,13,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#922b21'; ctx.beginPath(); ctx.ellipse(x+15,y-9,15,7,0,0,Math.PI); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+10,y-17,4,0,Math.PI*2); ctx.arc(x+21,y-17,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(x+10+dir*1.4,y-17,1.9,0,Math.PI*2); ctx.arc(x+21+dir*1.4,y-17,1.9,0,Math.PI*2); ctx.fill();
+}
+function drawBoss(b){
+  const flash=b.hitFlash>0&&Math.floor(b.hitFlash/4)%2===0;
+  const cx=b.x+b.w/2, cy=b.y+b.h/2, wob=Math.sin(frame/6)*3;
+  ctx.fillStyle='#5d2b1a';
+  ctx.fillRect(b.x+10,b.y+b.h-8,22,10); ctx.fillRect(b.x+b.w-32,b.y+b.h-8,22,10);
+  ctx.fillStyle=flash?'#ffffff':'#8e2b2b';
+  ctx.beginPath(); ctx.ellipse(cx,cy+wob*0.2,b.w/2,b.h/2,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=flash?'#dddddd':'#661f1f';
+  ctx.beginPath(); ctx.ellipse(cx,cy+16,b.w/2,b.h/4,0,0,Math.PI); ctx.fill();
+  ctx.fillStyle='#ffd700';
+  const cw=44, ct=b.y-14;
+  ctx.beginPath();
+  ctx.moveTo(cx-cw/2,ct+16); ctx.lineTo(cx-cw/2,ct+4); ctx.lineTo(cx-cw/4,ct+11);
+  ctx.lineTo(cx,ct); ctx.lineTo(cx+cw/4,ct+11); ctx.lineTo(cx+cw/2,ct+4);
+  ctx.lineTo(cx+cw/2,ct+16); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#e84118'; ctx.beginPath(); ctx.arc(cx,ct+9,3.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx-13,cy-10,8,0,Math.PI*2); ctx.arc(cx+13,cy-10,8,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#000'; const dx=b.vx>0?2.5:-2.5;
+  ctx.beginPath(); ctx.arc(cx-13+dx,cy-10,4,0,Math.PI*2); ctx.arc(cx+13+dx,cy-10,4,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#3d0f0f'; ctx.lineWidth=3.5;
+  ctx.beginPath(); ctx.moveTo(cx-21,cy-21); ctx.lineTo(cx-6,cy-15);
+  ctx.moveTo(cx+21,cy-21); ctx.lineTo(cx+6,cy-15); ctx.stroke();
+  const bw=90;
+  ctx.fillStyle='rgba(0,0,0,.55)'; roundRect(ctx,cx-bw/2,b.y-32,bw,9,4); ctx.fill();
+  ctx.fillStyle= b.hp<=2 ? '#ff4757' : '#2ed573'; roundRect(ctx,cx-bw/2+1,b.y-31,(bw-2)*(b.hp/b.maxHp),7,3); ctx.fill();
+}
+function cloud(x,y){ ctx.beginPath(); ctx.arc(x,y,20,0,Math.PI*2); ctx.arc(x+22,y-12,26,0,Math.PI*2); ctx.arc(x+48,y,20,0,Math.PI*2); ctx.fill(); }
+/* ------------------------------------------------------------
+   FIXED TIMESTEP LOOP
+   Physics always advances in exact 1/60s steps, no matter what
+   the monitor's refresh rate is or how busy the browser gets.
+   On a 144Hz screen we simply draw more often between steps; on
+   a slow frame we run several steps to catch up. The game feels
+   identical everywhere.
+   ------------------------------------------------------------ */
+const STEP = 1000/60;
+let lastTime = 0, accumulator = 0;
+let fps = 60, fpsSamples = [], showFps = false;
+
+function loop(now){
+  requestAnimationFrame(loop);
+  if(!lastTime){ lastTime = now; return; }
+
+  let delta = now - lastTime;
+  lastTime = now;
+
+  // a tab that was backgrounded can return a huge delta — never
+  // simulate more than ~5 steps of catch-up in one frame
+  if(delta > STEP*5) delta = STEP*5;
+
+  accumulator += delta;
+  let steps = 0;
+  while(accumulator >= STEP && steps < 5){
+    update();
+    accumulator -= STEP;
+    steps++;
+  }
+
+  fpsSamples.push(1000/Math.max(delta,1));
+  if(fpsSamples.length > 30){
+    fpsSamples.shift();
+    fps = Math.round(fpsSamples.reduce((a,b)=>a+b,0)/fpsSamples.length);
+  }
+
+  draw();
+}
+
+/* ============================================================
+   RESPONSIVE CANVAS
+   The game always renders at 840x470 internally. We only scale
+   how big it LOOKS via CSS, so physics and level coordinates
+   never change across devices.
+   ============================================================ */
+function fitCanvas(){
+  const isTouch = window.matchMedia('(hover:none)').matches;
+  const landscape = window.innerWidth > window.innerHeight;
+  if(isTouch && landscape){
+    const vh = window.innerHeight;
+    const hudH  = el('hud').offsetHeight || 24;
+    const padH  = Math.max(64, Math.round(vh*0.22));   // control bar gets ~22% of height
+    const availW = window.innerWidth;
+    const availH = vh - hudH - padH;
+    const scale = Math.min(availW/W, availH/H);
+    canvas.style.width  = Math.floor(W*scale)+'px';
+    canvas.style.height = Math.floor(H*scale)+'px';
+    el('touch').style.height = padH+'px';
+  } else {
+    canvas.style.width = '';
+    canvas.style.height = '';
+    el('touch').style.height = '';
+  }
+}
+addEventListener('resize', fitCanvas);
+addEventListener('orientationchange', ()=>setTimeout(fitCanvas,250));
+setTimeout(fitCanvas, 60);
+
+/* ============================================================
+   UI
+   ============================================================ */
+addEventListener('keydown',e=>{ keys[e.key]=true; if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault(); });
+addEventListener('keyup',e=>{ keys[e.key]=false; });
+function hold(id,key){
+  const b=el(id), set=v=>{ keys[key]=v; };
+  // passive:false so preventDefault actually stops scroll/zoom on iOS
+  b.addEventListener('touchstart', e=>{ e.preventDefault(); ac(); set(true); }, {passive:false});
+  b.addEventListener('touchend',   e=>{ e.preventDefault(); set(false); }, {passive:false});
+  b.addEventListener('touchcancel',e=>{ e.preventDefault(); set(false); }, {passive:false});
+  b.addEventListener('mousedown', e=>{ e.preventDefault(); set(true); });
+  b.addEventListener('mouseup',   e=>{ e.preventDefault(); set(false); });
+  b.addEventListener('mouseleave',()=>set(false));
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+}
+hold('bL','ArrowLeft'); hold('bR','ArrowRight'); hold('bJ',' ');
+// if a touch is lost anywhere (notification, call), release everything
+addEventListener('blur', ()=>{ keys['ArrowLeft']=keys['ArrowRight']=keys[' ']=false; });
+// stop the whole page from scrolling / rubber-banding during play
+document.addEventListener('touchmove', e=>{ if(running) e.preventDefault(); }, {passive:false});
+
+const charsEl=el('chars');
+CHARACTERS.forEach(c=>{
+  const d=document.createElement('div');
+  if(c.id===save.hero) chosen=c;
+  d.className='card'+(c.id===save.hero?' sel':'');
+  d.innerHTML=`<canvas width="58" height="58"></canvas><div class="nm">${c.name}</div><div class="ab">${c.ability}</div>`;
+  drawHero(d.querySelector('canvas').getContext('2d'),c,15,8,28,40,1,0,false);
+  d.onclick=()=>{ ac(); chosen=c; save.hero=c.id; writeSave();
+    [...charsEl.children].forEach(k=>k.classList.remove('sel')); d.classList.add('sel'); tone(680,0.07); };
+  charsEl.appendChild(d);
+});
+
+let startLevel=0;
+const LEVEL_NAMES=['Green hills','Broken bridge','Crystal caves','Goober King'];
+const lvlEl=el('levelPick');
+
+function renderLevelPick(){
+  if(startLevel >= save.unlocked) startLevel = save.unlocked-1;
+  lvlEl.innerHTML='';
+  LEVEL_NAMES.forEach((nm,i)=>{
+    const locked = i >= save.unlocked;
+    const done = save.cleared.includes(i);
+    const d=document.createElement('div');
+    d.className='lvl'+(i===startLevel&&!locked?' sel':'')+(locked?' locked':'');
+    d.innerHTML = locked
+      ? `🔒<small class="lock">Locked</small>`
+      : `${i+1}${done?' ✓':''}<small>${nm}</small>`;
+    if(!locked) d.onclick=()=>{ ac(); startLevel=i; tone(620,0.06); renderLevelPick(); };
+    lvlEl.appendChild(d);
+  });
+  const info=el('saveInfo');
+  if(save.best>0 || save.cleared.length>0)
+    info.innerHTML = `Best score <b>${save.best}</b> · ${save.cleared.length}/4 levels cleared`;
+  else
+    info.textContent = 'Clear a level to unlock the next one.';
+}
+renderLevelPick();
+
+el('startBtn').onclick=()=>{
+  ac(); applyCharacter();
+  score=0; gameOver=false; win=false; running=true;
+  levels=makeLevels(); loadLevel(startLevel);
+  el('select').classList.add('hidden');
+  el('playArea').classList.remove('hidden');
+  SFX.shield();
+};
+el('restartBtn').onclick=()=>{
+  applyCharacter(); score=0; gameOver=false; win=false; running=true;
+  levels=makeLevels(); loadLevel(startLevel);
+};
+el('menuBtn').onclick=()=>{
+  running=false; stopMusic(); if(timerId) clearInterval(timerId);
+  el('playArea').classList.add('hidden');
+  el('select').classList.remove('hidden');
+  renderLevelPick();
+};
+el('wipeBtn').onclick=()=>{
+  if(confirm('Erase saved progress and best score?')){ wipeSave(); startLevel=0; renderLevelPick(); tone(300,0.2,'sawtooth'); }
+};
+el('musicBtn').onclick=()=>{
+  musicOn=!musicOn; el('musicBtn').textContent=musicOn?'🎵 Music on':'🎵 Music off';
+  if(musicOn&&running) startMusic(currentTrack); else stopMusic();
+};
+el('sfxBtn').onclick=()=>{ sfxOn=!sfxOn; el('sfxBtn').textContent=sfxOn?'🔊 SFX on':'🔇 SFX off'; };
+el('fpsBtn').onclick=()=>{ showFps=!showFps; el('fpsBtn').textContent=showFps?'📊 FPS on':'📊 FPS'; };
+
+applyCharacter(); loadLevel(0); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

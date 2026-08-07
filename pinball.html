@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Pinball</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:radial-gradient(circle at 50% 0%, #241b4a, #080714 70%);
+    font-family:'Trebuchet MS', Arial, sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; padding:12px; color:#fff; user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  h1 { font-size:28px; letter-spacing:8px; text-shadow:0 0 12px #ff2e88, 0 0 30px #ff2e88; }
+  .sub { color:#8a86b8; font-size:12.5px; margin:4px 0 10px; letter-spacing:1px; }
+
+  #hud {
+    display:flex; gap:18px; background:rgba(0,0,0,.55); padding:7px 20px;
+    border-radius:8px; margin-bottom:8px; font-weight:bold; font-size:15px;
+    border:1px solid #3a3470;
+  }
+  #hud .lbl { color:#8a86b8; font-weight:normal; font-size:10.5px; display:block; letter-spacing:1px; }
+  .val { color:#4dd0ff; }
+  .val.pink { color:#ff2e88; }
+  .val.gold { color:#ffd700; }
+
+  #stage { position:relative; }
+  canvas { border-radius:10px; box-shadow:0 0 34px rgba(120,60,255,.45); display:block; }
+
+  #msg {
+    position:absolute; top:34%; left:0; right:0; text-align:center;
+    font-size:22px; font-weight:bold; pointer-events:none;
+    text-shadow:0 0 14px #000, 0 2px 8px #000; min-height:28px; letter-spacing:1px;
+  }
+
+  #hint { margin-top:10px; color:#8a86b8; font-size:12.5px; text-align:center; max-width:580px; line-height:1.8; }
+  button {
+    padding:9px 18px; font-size:14px; border:none; border-radius:8px;
+    background:#ff2e88; color:#fff; font-weight:bold; cursor:pointer;
+    box-shadow:0 4px 0 #a01a58; margin:6px 4px;
+  }
+  button:active { box-shadow:0 1px 0 #a01a58; transform:translateY(3px); }
+  button.alt { background:#2d2a5c; box-shadow:0 4px 0 #1a1840; }
+
+  #touch { display:none; width:100%; gap:10px; margin-top:10px; }
+  .tbtn {
+    flex:1; height:76px; border-radius:14px; background:#2d2a5c;
+    border:2px solid rgba(255,255,255,.25); color:#fff; font-weight:bold; font-size:14px;
+    box-shadow:0 4px 0 #1a1840; margin:0; touch-action:none;
+  }
+  .tbtn:active { background:#ff2e88; transform:translateY(3px); box-shadow:0 1px 0 #a01a58; }
+  @media (hover:none) {
+    #touch { display:flex; }
+    #hint { display:none; }
+    body { padding:6px; }
+    h1 { font-size:18px; letter-spacing:4px; margin-bottom:2px; }
+    .sub { display:none; }
+    #hud {
+      gap:9px; padding:5px 8px; font-size:13px; margin-bottom:5px;
+      width:100%; justify-content:space-around; flex-wrap:nowrap;
+    }
+    #hud .lbl { font-size:8.5px; letter-spacing:0; }
+    #hud > div { text-align:center; min-width:0; }
+    .tbtn { height:70px; font-size:13px; }
+    #newBtn, #musicBtn, #sfxBtn { padding:7px 11px; font-size:12px; margin:5px 2px; }
+    #msg { font-size:18px; }
+  }
+  /* very narrow phones: drop the least critical readout */
+  @media (hover:none) and (max-width:360px) {
+    #bestBox { display:none; }
+  }
+
+  #backLink {
+    position:fixed; top:10px; left:10px; z-index:200;
+    background:rgba(0,0,0,.55); color:#fff; text-decoration:none;
+    padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold;
+    border:1px solid rgba(255,255,255,.2); font-family:'Trebuchet MS',Arial,sans-serif;
+  }
+  #backLink:hover { background:rgba(0,0,0,.8); }
+  @media (hover:none) and (orientation:landscape) { #backLink { top:4px; left:4px; padding:4px 9px; font-size:11px; } }
+</style>
+</head>
+<body>
+<a id="backLink" href="index.html">← Menu</a>
+
+<h1>PINBALL</h1>
+<div class="sub">ramps · skill shot · multiball · ball save</div>
+
+<div id="hud">
+  <div><span class="lbl">SCORE</span><span class="val" id="score">0</span></div>
+  <div><span class="lbl">BALLS</span><span class="val pink" id="balls">3</span></div>
+  <div id="bestBox"><span class="lbl">BEST</span><span class="val gold" id="best">0</span></div>
+  <div><span class="lbl">LEVEL</span><span class="val gold" id="tier">ROOKIE</span></div>
+  <div><span class="lbl">NEXT</span><span class="val" id="next">20k</span></div>
+</div>
+
+<div id="stage">
+  <canvas id="game" width="480" height="740"></canvas>
+  <div id="msg"></div>
+</div>
+
+<div id="touch">
+  <button class="tbtn" id="tL">◀ LEFT</button>
+  <button class="tbtn" id="tLaunch">LAUNCH</button>
+  <button class="tbtn" id="tR">RIGHT ▶</button>
+</div>
+
+<div>
+  <button id="newBtn">🔄 New game</button>
+  <button id="musicBtn" class="alt">🎵 Music on</button>
+  <button id="sfxBtn" class="alt">🔊 SFX on</button>
+</div>
+
+<div id="hint">
+  <b>Z</b>/<b>←</b> left flipper &nbsp;·&nbsp; <b>/</b>/<b>→</b> right flipper &nbsp;·&nbsp; hold <b>Space</b> to charge, release to launch<br>
+  Stop the meter in the <span style="color:#ffd700">gold band</span> for a SKILL SHOT &nbsp;·&nbsp; shoot the side <span style="color:#00e5a0">RAMPS</span> for big points<br>
+  Light all 3 targets for MULTIBALL &nbsp;·&nbsp; free BALL SAVE after each launch<br>
+  Every <b>20,000</b> points the table LEVELS UP — faster ball, shorter save, spinning deflectors
+</div>
+
+<script>
+/* ============================================================
+   AUDIO
+   ============================================================ */
+let actx=null, sfxOn=true, musicOn=true;
+function ac(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+function tone(f,d=0.08,type='square',v=0.1){
+  if(!sfxOn) return;
+  try{ const a=ac(),o=a.createOscillator(),g=a.createGain();
+    o.type=type;o.frequency.value=f;
+    g.gain.setValueAtTime(v,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+d);
+    o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d);
+  }catch(e){}
+}
+function sweep(f1,f2,d=0.2,type='square',v=0.12){
+  if(!sfxOn) return;
+  try{ const a=ac(),o=a.createOscillator(),g=a.createGain();
+    o.type=type;o.frequency.setValueAtTime(f1,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(Math.max(f2,1),a.currentTime+d);
+    g.gain.setValueAtTime(v,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+d);
+    o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d);
+  }catch(e){}
+}
+const SFX={
+  flip:()=>tone(180,0.05,'square',0.07),
+  wall:()=>tone(260,0.04,'sine',0.05),
+  bump:()=>{tone(680,0.07);setTimeout(()=>tone(920,0.07),40);},
+  target:()=>tone(1040,0.06,'triangle',0.12),
+  slam:()=>sweep(500,140,0.12,'sawtooth',0.12),
+  launch:()=>sweep(180,760,0.3,'sawtooth',0.14),
+  drain:()=>sweep(400,70,0.5,'sawtooth',0.15),
+  save:()=>{[523,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.16,'sine',0.15),i*90));},
+  ramp:()=>sweep(300,1100,0.4,'triangle',0.12),
+  rampEnd:()=>{[880,1175,1568].forEach((f,i)=>setTimeout(()=>tone(f,0.1,'square',0.13),i*70));},
+  skill:()=>{[659,880,1109,1319,1760].forEach((f,i)=>setTimeout(()=>tone(f,0.13,'triangle',0.16),i*85));},
+  multi:()=>{[523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>tone(f,0.14,'triangle',0.14),i*80));},
+  over:()=>{[392,330,262,196].forEach((f,i)=>setTimeout(()=>tone(f,0.32,'triangle',0.13),i*210));},
+  tierUp:()=>{[262,330,392,523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,0.16,'square',0.15),i*75));}
+};
+
+/* ============================================================
+   MUSIC
+   ============================================================ */
+let musicTimer=null, mStep=0;
+const BASS   = [110,110,110,110, 98,98,98,98, 87,87,87,87, 98,98,123,123];
+const ARP    = [440,554,659,554, 392,494,587,494, 349,440,523,440, 392,494,587,740];
+const ARP_HI = [880,1109,1319,1109, 988,1175,1480,1175, 1047,1319,1568,1319, 1175,1480,1760,1480];
+function mNote(freq,type,vol,dur){
+  try{
+    const a=ac(),o=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();
+    o.type=type;o.frequency.value=freq;
+    f.type='lowpass'; f.frequency.value=1900;
+    g.gain.setValueAtTime(vol,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+dur);
+    o.connect(f);f.connect(g);g.connect(a.destination);
+    o.start();o.stop(a.currentTime+dur);
+  }catch(e){}
+}
+function startMusic(){
+  stopMusic(); if(!musicOn) return;
+  musicTimer=setInterval(()=>{
+    if(!musicOn) return;
+    const i=mStep%16;
+    mNote(BASS[i],'triangle',0.075,0.26);
+    if(i%2===0) mNote((multiballLit&&balls.length>1?ARP_HI:ARP)[i],'square',0.030,0.19);
+    if(i%8===0) mNote(70,'sine',0.10,0.13);
+    mStep++;
+  },148);
+}
+function stopMusic(){ if(musicTimer){clearInterval(musicTimer);musicTimer=null;} }
+
+/* ============================================================
+   SAVE
+   ============================================================ */
+const KEY='pinball.best';
+let best=0, mem=null;
+try{ best=+(localStorage.getItem(KEY)||0); }catch(e){ best=0; }
+function saveBest(v){ best=v; mem=v; try{ localStorage.setItem(KEY,v); }catch(e){} }
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+const cv=document.getElementById('game'), ctx=cv.getContext('2d');
+const W=cv.width, H=cv.height;
+const BALL_R=9, LANE_X=W-30;
+
+const walls=[
+  // ---- outer frame ----
+  {x1:14,y1:60,   x2:14,   y2:H-300},
+  {x1:14,y1:60,   x2:90,   y2:20},
+  {x1:90,y1:20,   x2:300,  y2:14},
+  {x1:300,y1:14,  x2:W-14, y2:96},        // roof: feeds the ball left out of the lane
+  {x1:W-46,y1:170,x2:W-46, y2:H-300},     // lane inner wall (open above y=170)
+  {x1:W-14,y1:60, x2:W-14, y2:H-40},      // right outer
+
+  // ---- funnels straight down to the flipper pivots: no outlane gap ----
+  {x1:14,   y1:H-300, x2:100,   y2:H-180},
+  {x1:100,  y1:H-180, x2:142,   y2:H-100, bouncy:1.5},   // left slingshot
+  {x1:W-46, y1:H-300, x2:W-100, y2:H-180},
+  {x1:W-100,y1:H-180, x2:W-142, y2:H-100, bouncy:1.5}    // right slingshot
+];
+
+// one-way gate at the lane mouth
+const gate={x1:W-46,y1:150,x2:W-14,y2:150};
+
+/* Element pools. The active tier decides how many are switched on,
+   so levelling up literally adds hardware to the table. */
+const bumperPool=[
+  {x:158,y:225,r:23,score:100,flash:0},
+  {x:248,y:172,r:23,score:100,flash:0},
+  {x:334,y:228,r:23,score:100,flash:0},
+  {x:246,y:286,r:19,score:150,flash:0},
+  {x:108,y:150,r:19,score:200,flash:0},   // +PRO
+  {x:388,y:152,r:19,score:200,flash:0},   // +EXPERT
+  {x:248,y:112,r:17,score:300,flash:0}    // +INSANE
+];
+const targetPool=[
+  {x:96, y:352,w:16,h:50,lit:false,score:250},
+  {x:224,y:398,w:50,h:16,lit:false,score:250},
+  {x:360,y:352,w:16,h:50,lit:false,score:250},
+  {x:158,y:452,w:44,h:14,lit:false,score:300},   // +EXPERT
+  {x:290,y:452,w:44,h:14,lit:false,score:300}    // +INSANE
+];
+let bumpers=bumperPool.slice(0,4);
+let targets=targetPool.slice(0,3);
+function applyTierElements(){
+  bumpers=bumperPool.slice(0,T().bumpers);
+  const keepLit=targets.filter(t=>t.lit).length;
+  targets=targetPool.slice(0,T().targets);
+  targets.forEach((t,i)=>{ t.lit = i<keepLit; });
+}
+
+/* ---------- RAMPS ----------
+   A ramp is a path the ball rides along. When the ball enters the
+   mouth with enough upward speed it is captured, carried along the
+   path, and released at the far end with a set velocity. This is
+   exactly how digital pinball handles ramps — trying to simulate a
+   physical rail with collisions is fragile and never feels right. */
+const ramps=[
+  { id:'L', name:'LEFT RAMP', color:'#00e5a0',
+    mouth:{x:82,y:392,r:20}, minSpeed:6.2, hits:0,
+    path:[[82,392],[58,320],[52,232],[86,150],[160,108],[262,100],[352,140],[398,214],[404,318],[400,430],[396,506]],
+    exitVel:[0,3.4] },
+  { id:'R', name:'RIGHT ORBIT', color:'#ffb347',
+    mouth:{x:398,y:392,r:20}, minSpeed:6.2, hits:0,
+    path:[[398,392],[420,320],[424,232],[392,150],[318,106],[214,100],[126,140],[80,214],[76,318],[80,430],[84,506]],
+    exitVel:[0,3.4] }
+];
+
+function makeFlipper(px,py,dir){
+  return { px,py,dir, len:80, r:8,
+    rest: dir>0?0.42:Math.PI-0.42,
+    up:   dir>0?-0.44:Math.PI+0.44,
+    angle:dir>0?0.42:Math.PI-0.42,
+    prevAngle:0, av:0, active:false };
+}
+const flipL=makeFlipper(142,H-96,1);
+const flipR=makeFlipper(W-142,H-96,-1);
+const flippers=[flipL,flipR];
+function flipperTip(f){ return {x:f.px+Math.cos(f.angle)*f.len, y:f.py+Math.sin(f.angle)*f.len}; }
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let balls=[], ballsLeft=3, score=0;
+let plunger=0, plungerHeld=false, inLane=true;
+let gameOver=false, msgTimer=0, multiballLit=false;
+let ballSave=0;                    // frames of ball-save protection left
+
+/* ---------- DIFFICULTY LADDER ----------
+   The table escalates as your score climbs. Each stage makes the
+   ball heavier and faster, shortens the ball save, and adds a
+   rotating deflector bar that scrambles the ball's path. Multiball
+   is one escalation; these are the others. */
+/* Each stage costs DOUBLE the last: 20k, then +40k, +80k, +160k, +320k.
+   Cumulative thresholds below. Every stage also repaints the table and
+   adds new physical elements, so a level-up is something you SEE. */
+const TIERS=[
+  {name:'ROOKIE',    at:0,      grav:0.200, save:480, bumper:4.2,
+   spinners:0, bumpers:4, targets:3,
+   wall:'#6c5ce7', flip:'#ff2e88', ramp:['#00e5a0','#ffb347'], glow:'#4dd0ff'},
+
+  {name:'PRO',       at:20000,  grav:0.222, save:400, bumper:4.6,
+   spinners:1, bumpers:5, targets:3,
+   wall:'#00b8d4', flip:'#00e5a0', ramp:['#4dd0ff','#00e5a0'], glow:'#00e5a0'},
+
+  {name:'EXPERT',    at:60000,  grav:0.246, save:330, bumper:5.0,
+   spinners:1, bumpers:6, targets:4,
+   wall:'#c9a227', flip:'#ffd700', ramp:['#ffd700','#ffe680'], glow:'#ffd700'},
+
+  {name:'MASTER',    at:140000, grav:0.272, save:270, bumper:5.4,
+   spinners:2, bumpers:6, targets:4,
+   wall:'#e67e22', flip:'#ffb347', ramp:['#ffb347','#ff8c42'], glow:'#ffb347'},
+
+  {name:'INSANE',    at:300000, grav:0.300, save:210, bumper:5.8,
+   spinners:2, bumpers:7, targets:5,
+   wall:'#e94560', flip:'#ff2e88', ramp:['#ff2e88','#ff6b9d'], glow:'#ff2e88'},
+
+  {name:'NIGHTMARE', at:620000, grav:0.332, save:160, bumper:6.3,
+   spinners:3, bumpers:7, targets:5,
+   wall:'#8e44ad', flip:'#e84393', ramp:['#c56cf0','#ff2e88'], glow:'#c56cf0'}
+];
+let tier=0;
+function T(){ return TIERS[tier]; }
+
+/* Rotating deflector bars — they spin, and the ball bounces off with
+   the bar's own motion added, so the same shot never repeats. */
+const spinners=[
+  {x:240,y:452,len:52,angle:0,speed:0.028},
+  {x:130,y:300,len:40,angle:1.2,speed:-0.036},
+  {x:350,y:300,len:40,angle:2.4,speed:0.040}
+];
+function activeSpinners(){ return spinners.slice(0,T().spinners); }
+
+function checkTier(){
+  let want=0;
+  for(let i=0;i<TIERS.length;i++) if(score>=TIERS[i].at) want=i;
+  if(want>tier){
+    const gained=[];
+    const prev=TIERS[tier];
+    tier=want;
+    const now=T();
+    if(now.bumpers>prev.bumpers)  gained.push('+'+(now.bumpers-prev.bumpers)+' BUMPER');
+    if(now.targets>prev.targets)  gained.push('+'+(now.targets-prev.targets)+' TARGET');
+    if(now.spinners>prev.spinners)gained.push('+'+(now.spinners-prev.spinners)+' SPINNER');
+    applyTierElements();
+    SFX.tierUp();
+    flashTier=90;                       // full-table colour flash
+    setMsg('▲ '+now.name+' ▲'+(gained.length?'  '+gained.join(' · '):''),170);
+    for(let i=0;i<40;i++) spark(W/2,H/2,now.glow);
+    for(let i=0;i<14;i++){ spark(60,120,now.glow); spark(W-60,120,now.glow); }
+    updateHud();
+  }
+}
+let flashTier=0;
+let skillLit=false;                // skill shot armed on this launch
+const SKILL_LO=58, SKILL_HI=76;    // the gold band on the plunger meter
+const keys={};
+
+function newBall(){ return {x:LANE_X,y:H-120,vx:0,vy:0,ramp:null,rt:0}; }
+function newGame(){
+  score=0; ballsLeft=3; gameOver=false;
+  targetPool.forEach(t=>t.lit=false); ramps.forEach(r=>r.hits=0);
+  multiballLit=false; ballSave=0; tier=0; flashTier=0;
+  spinners.forEach((sp,i)=>sp.angle=[0,1.2,2.4][i]);
+  applyTierElements();
+  targetPool.forEach(t=>t.lit=false);
+  balls=[newBall()]; inLane=true; plunger=0; skillLit=true;
+  updateHud(); setMsg('HOLD SPACE TO LAUNCH',160);
+}
+function updateHud(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('balls').textContent=ballsLeft;
+  document.getElementById('best').textContent=best;
+  const te=document.getElementById('tier');
+  const narrow = window.innerWidth<430;
+  te.textContent = narrow ? T().name.slice(0,4) : T().name;
+  te.style.color=T().glow;
+  const ne=document.getElementById('next');
+  if(tier<TIERS.length-1){
+    const need=TIERS[tier+1].at-score;
+    ne.textContent=(need>=1000? Math.ceil(need/1000)+'k' : need);
+    ne.style.color=TIERS[tier+1].glow;
+  } else { ne.textContent='MAX'; ne.style.color='#c56cf0'; }
+}
+function setMsg(t,f){ document.getElementById('msg').textContent=t; msgTimer=f||90; }
+function addScore(n){
+  score+=n;
+  if(score>best) saveBest(score);
+  updateHud(); checkTier();
+}
+
+/* ============================================================
+   PHYSICS
+   ============================================================ */
+function closestOnSeg(px,py,x1,y1,x2,y2){
+  const dx=x2-x1, dy=y2-y1, l2=dx*dx+dy*dy;
+  if(l2===0) return {x:x1,y:y1};
+  let t=((px-x1)*dx+(py-y1)*dy)/l2;
+  t=Math.max(0,Math.min(1,t));
+  return {x:x1+t*dx,y:y1+t*dy};
+}
+function collideSeg(b,x1,y1,x2,y2,rest,segR){
+  segR=segR||0;
+  const c=closestOnSeg(b.x,b.y,x1,y1,x2,y2);
+  let nx=b.x-c.x, ny=b.y-c.y, d=Math.hypot(nx,ny);
+  const minD=BALL_R+segR;
+  if(d>minD||d===0) return false;
+  nx/=d; ny/=d;
+  b.x=c.x+nx*minD; b.y=c.y+ny*minD;
+  const vn=b.vx*nx+b.vy*ny;
+  if(vn<0){ b.vx-=(1+rest)*vn*nx; b.vy-=(1+rest)*vn*ny; }
+  return true;
+}
+function pathLength(p){
+  let L=0; for(let i=1;i<p.length;i++) L+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);
+  return L;
+}
+function pointAt(p,t){                       // t = 0..1 along the path
+  const total=pathLength(p); let want=t*total, acc=0;
+  for(let i=1;i<p.length;i++){
+    const seg=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);
+    if(acc+seg>=want){
+      const f=(want-acc)/seg;
+      return [p[i-1][0]+(p[i][0]-p[i-1][0])*f, p[i-1][1]+(p[i][1]-p[i-1][1])*f];
+    }
+    acc+=seg;
+  }
+  return p[p.length-1];
+}
+
+/* ============================================================
+   UPDATE
+   ============================================================ */
+function update(){
+  for(const f of flippers){
+    f.prevAngle=f.angle;
+    f.angle += ((f.active?f.up:f.rest)-f.angle)*0.42;
+    f.av=f.angle-f.prevAngle;
+  }
+  if(inLane){
+    if(plungerHeld) plunger=Math.min(plunger+1.05,100);
+    const b=balls[0];
+    if(b){ b.x=LANE_X; b.y=H-120+plunger*0.28; b.vx=0; b.vy=0; }
+  }
+  if(msgTimer>0){ msgTimer--; if(!msgTimer) document.getElementById('msg').textContent=''; }
+  if(ballSave>0) ballSave--;
+  for(const sp of activeSpinners()) sp.angle+=sp.speed;
+
+  if(inLane||gameOver) return;
+
+  for(let i=balls.length-1;i>=0;i--){
+    const b=balls[i];
+
+    /* ---------- riding a ramp ---------- */
+    if(b.ramp){
+      const r=b.ramp;
+      b.rt += 0.020;
+      if(b.rt>=1){
+        const end=r.path[r.path.length-1];
+        b.x=end[0]; b.y=end[1];
+        b.vx=r.exitVel[0]; b.vy=r.exitVel[1];
+        b.ramp=null; b.rt=0;
+        SFX.rampEnd();
+      } else {
+        const pt=pointAt(r.path,b.rt);
+        b.x=pt[0]; b.y=pt[1]; b.vx=0; b.vy=0;
+        if(Math.random()<0.4) spark(b.x,b.y,r.color);
+      }
+      continue;
+    }
+
+    // ---- anti-stick watchdog ----
+    // If a ball creeps along at almost no speed for a full second it
+    // has wedged somewhere. Nudge it free rather than stalling the game.
+    if(Math.hypot(b.vx,b.vy)<0.7){
+      b.stall=(b.stall||0)+1;
+      if(b.stall>60){
+        b.vx += (Math.random()-0.5)*5;
+        b.vy -= 3.5;
+        b.stall=0; spark(b.x,b.y,'#fff');
+      }
+    } else b.stall=0;
+
+    b.vy+=T().grav;
+    b.vx*=0.9985; b.vy*=0.9985;
+    const sp=Math.hypot(b.vx,b.vy);
+    if(sp>17){ b.vx=b.vx/sp*17; b.vy=b.vy/sp*17; }
+
+    const steps=Math.max(1,Math.ceil(sp/4));
+    for(let s=0;s<steps;s++){
+      b.x+=b.vx/steps; b.y+=b.vy/steps;
+
+      /* ---- ramp mouths ---- */
+      let entered=false;
+      for(const r of ramps){
+        const d=Math.hypot(b.x-r.mouth.x,b.y-r.mouth.y);
+        if(d<r.mouth.r+BALL_R && b.vy<-1 && Math.hypot(b.vx,b.vy)>r.minSpeed){
+          b.ramp=r; b.rt=0; r.hits++;
+          addScore(500 + r.hits*100);
+          SFX.ramp(); setMsg(r.name+' ×'+r.hits, 90);
+          entered=true; break;
+        }
+      }
+      if(entered) break;
+
+      for(const w of walls){
+        if(collideSeg(b,w.x1,w.y1,w.x2,w.y2,w.bouncy||0.55)){
+          if(w.bouncy){ addScore(60); SFX.slam(); spark(b.x,b.y,'#ff2e88'); }
+          else SFX.wall();
+        }
+      }
+      /* One-way gate. Only solid to a ball genuinely falling INTO the
+         lane — otherwise a slow ball could rest on it forever. When it
+         does catch a ball we shove it left, back into the playfield,
+         instead of letting it settle. */
+      if(b.vy>0.5 && b.x>W-58 && b.y<gate.y1+26 && b.y>gate.y1-26){
+        if(collideSeg(b,gate.x1,gate.y1,gate.x2,gate.y2,0.25)){
+          b.y=gate.y1-BALL_R-1;
+          b.vx-=3.2;                 // push clear of the lane
+          if(b.vy>-1) b.vy=-1.5;     // never leave it resting
+          SFX.wall();
+        }
+      }
+
+      // rotating deflectors
+      for(const sp of activeSpinners()){
+        const hx=Math.cos(sp.angle)*sp.len, hy=Math.sin(sp.angle)*sp.len;
+        if(collideSeg(b, sp.x-hx, sp.y-hy, sp.x+hx, sp.y+hy, 0.75, 5)){
+          // add the bar's own surface speed at the contact point
+          const dx=b.x-sp.x, dy=b.y-sp.y, dist=Math.hypot(dx,dy);
+          const push=sp.speed*dist*2.2;
+          b.vx += -Math.sin(sp.angle)*push*3;
+          b.vy +=  Math.cos(sp.angle)*push*3;
+          addScore(75); SFX.slam(); spark(b.x,b.y,T().glow);
+        }
+      }
+
+      for(const f of flippers){
+        const tip=flipperTip(f);
+        if(collideSeg(b,f.px,f.py,tip.x,tip.y,0.42,f.r)){
+          const dx=b.x-f.px, dy=b.y-f.py, dist=Math.hypot(dx,dy);
+          if(Math.abs(f.av)>0.012){
+            const push=f.av*dist*2.6;
+            b.vx += -Math.sin(f.angle)*push;
+            b.vy +=  Math.cos(f.angle)*push;
+            SFX.flip();
+          }
+        }
+      }
+
+      for(const bp of bumpers){
+        let nx=b.x-bp.x, ny=b.y-bp.y, d=Math.hypot(nx,ny);
+        if(d<BALL_R+bp.r && d>0){
+          nx/=d; ny/=d;
+          b.x=bp.x+nx*(BALL_R+bp.r); b.y=bp.y+ny*(BALL_R+bp.r);
+          const vn=b.vx*nx+b.vy*ny;
+          b.vx-=2*vn*nx; b.vy-=2*vn*ny;
+          b.vx+=nx*T().bumper; b.vy+=ny*T().bumper;
+          bp.flash=12; addScore(bp.score); SFX.bump(); spark(bp.x,bp.y,'#4dd0ff');
+        }
+      }
+
+      for(const t of targets){
+        if(t.lit) continue;
+        if(b.x+BALL_R>t.x&&b.x-BALL_R<t.x+t.w&&b.y+BALL_R>t.y&&b.y-BALL_R<t.y+t.h){
+          t.lit=true; addScore(t.score); SFX.target(); spark(t.x+t.w/2,t.y+t.h/2,'#ffd700');
+          if(t.w<t.h) b.vx*=-1.1; else b.vy*=-1.1;
+          if(targets.every(q=>q.lit)&&!multiballLit){
+            multiballLit=true; SFX.multi(); setMsg('★ MULTIBALL ★',160);
+            score+=2000; updateHud();
+            for(let k=0;k<2;k++) balls.push({x:248,y:210,vx:(Math.random()-.5)*6,vy:2+Math.random()*2,ramp:null,rt:0});
+          }
+        }
+      }
+    }
+
+    /* ---- drain ---- */
+    if(b.y>H-20){
+      balls.splice(i,1);
+      spark(b.x,H-30,'#ff2e88');
+      if(balls.length===0){
+        if(ballSave>0){                       // ---- BALL SAVE ----
+          SFX.save(); setMsg('★ BALL SAVED ★',120);
+          balls=[newBall()]; inLane=true; plunger=0; ballSave=0; skillLit=false;
+        } else {
+          SFX.drain(); ballsLeft--; updateHud();
+          if(ballsLeft<=0){
+            gameOver=true; stopMusic(); SFX.over();
+            setMsg('GAME OVER — '+score,999999);
+          } else {
+            balls=[newBall()]; inLane=true; plunger=0; skillLit=true;
+            targets.forEach(t=>t.lit=false); multiballLit=false;
+            setMsg('BALL '+(4-ballsLeft),120);
+          }
+        }
+      }
+    }
+  }
+  stepSparks();
+}
+
+function launch(){
+  if(!inLane||gameOver) return;
+  // ---- SKILL SHOT: release inside the gold band ----
+  if(skillLit && plunger>=SKILL_LO && plunger<=SKILL_HI){
+    score+=5000; updateHud(); SFX.skill(); setMsg('★ SKILL SHOT +5000 ★',150);
+  }
+  skillLit=false;
+  const b=balls[0];
+  b.vy=-(14+plunger*0.11); b.vx=0;
+  inLane=false; plunger=0;
+  ballSave=T().save;
+  SFX.launch();
+}
+
+let sparks=[];
+function spark(x,y,c){ for(let i=0;i<10;i++) sparks.push({x,y,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,life:22,c}); }
+function stepSparks(){ sparks.forEach(s=>{s.x+=s.vx;s.y+=s.vy;s.vx*=.93;s.vy*=.93;s.life--;}); sparks=sparks.filter(s=>s.life>0); }
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+let tick=0;
+function draw(){
+  tick++;
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#1d1547'); g.addColorStop(.5,'#251c56'); g.addColorStop(1,'#120d2c');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  // ---- playfield art: glowing inserts + arcs ----
+  ctx.strokeStyle='rgba(120,80,220,.16)'; ctx.lineWidth=2;
+  for(let i=1;i<=5;i++){ ctx.beginPath(); ctx.arc(W/2,190,52*i,0,Math.PI*2); ctx.stroke(); }
+  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1;
+  for(let y=60;y<H;y+=40){ ctx.beginPath(); ctx.moveTo(20,y); ctx.lineTo(W-20,y); ctx.stroke(); }
+
+  // ---- ramp tubes (drawn under the ball) ----
+  for(const ri in ramps){
+    const r=ramps[ri];
+    r.color = T().ramp[ri%2];
+    ctx.strokeStyle=r.color; ctx.globalAlpha=.16; ctx.lineWidth=26; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(r.path[0][0],r.path[0][1]);
+    for(let i=1;i<r.path.length;i++) ctx.lineTo(r.path[i][0],r.path[i][1]);
+    ctx.stroke();
+    ctx.globalAlpha=.5; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // mouth + arrow
+    const m=r.mouth, pulse=.55+Math.sin(tick/14)*.35;
+    ctx.globalAlpha=pulse;
+    ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,Math.PI*2);
+    ctx.strokeStyle=r.color; ctx.lineWidth=4; ctx.shadowBlur=18; ctx.shadowColor=r.color; ctx.stroke();
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
+    ctx.fillStyle=r.color; ctx.globalAlpha=pulse;
+    ctx.beginPath(); ctx.moveTo(m.x,m.y-9); ctx.lineTo(m.x-7,m.y+4); ctx.lineTo(m.x+7,m.y+4); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+    if(r.hits>0){
+      ctx.fillStyle=r.color; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+      ctx.fillText('×'+r.hits, m.x, m.y+34); ctx.textAlign='left';
+    }
+  }
+
+  // ---- walls ----
+  ctx.lineCap='round';
+  for(const w of walls){
+    ctx.strokeStyle=w.bouncy?T().flip:T().wall;
+    ctx.lineWidth=w.bouncy?9:6;
+    ctx.shadowBlur=12; ctx.shadowColor=ctx.strokeStyle;
+    ctx.beginPath(); ctx.moveTo(w.x1,w.y1); ctx.lineTo(w.x2,w.y2); ctx.stroke();
+  }
+  ctx.shadowBlur=0;
+
+  // ---- one-way gate ----
+  ctx.strokeStyle='rgba(120,220,255,.3)'; ctx.lineWidth=3; ctx.setLineDash([6,6]);
+  ctx.beginPath(); ctx.moveTo(gate.x1,gate.y1); ctx.lineTo(gate.x2,gate.y2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ---- targets ----
+  for(const t of targets){
+    ctx.fillStyle=t.lit?'#ffd700':'#3a3470';
+    ctx.shadowBlur=t.lit?18:0; ctx.shadowColor='#ffd700';
+    ctx.fillRect(t.x,t.y,t.w,t.h); ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1.5; ctx.strokeRect(t.x,t.y,t.w,t.h);
+  }
+
+  // ---- bumpers ----
+  for(const bp of bumpers){
+    if(bp.flash>0) bp.flash--;
+    const lit=bp.flash>0;
+    ctx.beginPath(); ctx.arc(bp.x,bp.y,bp.r+5,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(bp.x,bp.y,bp.r,0,Math.PI*2);
+    ctx.fillStyle=lit?'#fff':T().glow;
+    ctx.shadowBlur=lit?28:14; ctx.shadowColor=T().glow; ctx.fill(); ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.arc(bp.x,bp.y,bp.r*.55,0,Math.PI*2);
+    ctx.fillStyle=lit?T().glow:'#1b1440'; ctx.fill();
+  }
+
+  // ---- rotating deflectors ----
+  for(const sp of activeSpinners()){
+    const hx=Math.cos(sp.angle)*sp.len, hy=Math.sin(sp.angle)*sp.len;
+    ctx.strokeStyle=T().glow; ctx.lineWidth=10; ctx.lineCap='round';
+    ctx.shadowBlur=16; ctx.shadowColor=T().glow;
+    ctx.beginPath(); ctx.moveTo(sp.x-hx,sp.y-hy); ctx.lineTo(sp.x+hx,sp.y+hy); ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(sp.x,sp.y,4,0,Math.PI*2); ctx.fill();
+  }
+
+  // ---- flippers ----
+  for(const f of flippers){
+    const tip=flipperTip(f);
+    ctx.strokeStyle=T().flip; ctx.lineWidth=f.r*2;
+    ctx.shadowBlur=16; ctx.shadowColor=T().flip;
+    ctx.beginPath(); ctx.moveTo(f.px,f.py); ctx.lineTo(tip.x,tip.y); ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(f.px,f.py,5,0,Math.PI*2); ctx.fill();
+  }
+
+  // ---- plunger + skill-shot meter ----
+  if(inLane){
+    const py=H-60+plunger*0.28;
+    ctx.strokeStyle='#8a86b8'; ctx.lineWidth=6;
+    ctx.beginPath(); ctx.moveTo(LANE_X,py); ctx.lineTo(LANE_X,H-24); ctx.stroke();
+
+    const mx=LANE_X-24, mb=H-80, mh=120;
+    ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(mx,mb-mh,10,mh);
+    if(skillLit){                                  // gold skill band
+      const y1=mb-(SKILL_HI/100)*mh, y2=mb-(SKILL_LO/100)*mh;
+      ctx.fillStyle='rgba(255,215,0,.75)'; ctx.fillRect(mx,y1,10,y2-y1);
+      ctx.shadowBlur=12; ctx.shadowColor='#ffd700'; ctx.fillRect(mx,y1,10,y2-y1); ctx.shadowBlur=0;
+    }
+    const inBand = skillLit && plunger>=SKILL_LO && plunger<=SKILL_HI;
+    ctx.fillStyle = inBand?'#ffd700':(plunger>85?'#ff2e88':'#4dd0ff');
+    ctx.fillRect(mx, mb-(plunger/100)*mh, 10, (plunger/100)*mh);
+  }
+
+  // ---- ball-save ring ----
+  if(ballSave>0 && !inLane){
+    const p=ballSave/T().save;
+    ctx.strokeStyle='rgba(0,229,160,.85)'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.arc(W/2,H-46,20,-Math.PI/2,-Math.PI/2+p*Math.PI*2); ctx.stroke();
+    ctx.fillStyle='#00e5a0'; ctx.font='bold 9px Arial'; ctx.textAlign='center';
+    ctx.fillText('SAVE',W/2,H-43); ctx.textAlign='left';
+  }
+
+  sparks.forEach(s=>{ ctx.globalAlpha=s.life/22; ctx.fillStyle=s.c; ctx.fillRect(s.x,s.y,3,3); });
+  ctx.globalAlpha=1;
+
+  for(const b of balls){
+    const bg=ctx.createRadialGradient(b.x-3,b.y-3,1,b.x,b.y,BALL_R);
+    bg.addColorStop(0,'#fff'); bg.addColorStop(.6,'#c8c8e0'); bg.addColorStop(1,'#6a6a90');
+    ctx.beginPath(); ctx.arc(b.x,b.y,BALL_R,0,Math.PI*2);
+    ctx.fillStyle=bg; ctx.shadowBlur=12; ctx.shadowColor='#fff'; ctx.fill(); ctx.shadowBlur=0;
+  }
+
+  ctx.fillStyle='rgba(255,46,136,.10)'; ctx.fillRect(0,H-20,W,20);
+
+  // ---- level-up flash: the whole table pulses in the new colour ----
+  if(flashTier>0){
+    flashTier--;
+    const a=(flashTier/90)*0.5*(0.55+0.45*Math.sin(tick/3));
+    ctx.fillStyle=T().glow; ctx.globalAlpha=a; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
+    ctx.strokeStyle=T().glow; ctx.lineWidth=6; ctx.globalAlpha=flashTier/90;
+    ctx.strokeRect(3,3,W-6,H-6); ctx.globalAlpha=1;
+  }
+}
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+const STEP=1000/60; let last=0, acc=0;
+function loop(now){
+  requestAnimationFrame(loop);
+  if(!last){ last=now; return; }
+  let dt=now-last; last=now;
+  if(dt>STEP*5) dt=STEP*5;
+  acc+=dt; let n=0;
+  while(acc>=STEP && n<5){ update(); acc-=STEP; n++; }
+  draw();
+}
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+function setFlip(side,on){ if(side==='L') flipL.active=on; else flipR.active=on; if(on) ac(); }
+// Space must never reach a focused button — capture it first.
+addEventListener('keydown',e=>{
+  if(e.code==='Space'||e.key===' '){ e.preventDefault(); blurAll(); }
+},{capture:true});
+
+addEventListener('keydown',e=>{
+  const isSpace = e.code==='Space'||e.key===' ';
+  if(isSpace){
+    e.preventDefault();
+    if(!plungerHeld){ plungerHeld=true; ac(); if(!musicTimer) startMusic(); }
+    return;                       // key-repeat keeps it held, never fires
+  }
+  if(keys[e.key]) return; keys[e.key]=true;
+  if(e.key==='z'||e.key==='Z'||e.key==='ArrowLeft') setFlip('L',true);
+  if(e.key==='/'||e.key==='ArrowRight') setFlip('R',true);
+});
+
+addEventListener('keyup',e=>{
+  const isSpace = e.code==='Space'||e.key===' ';
+  if(isSpace){ e.preventDefault(); if(plungerHeld){ plungerHeld=false; launch(); } return; }
+  keys[e.key]=false;
+  if(e.key==='z'||e.key==='Z'||e.key==='ArrowLeft') setFlip('L',false);
+  if(e.key==='/'||e.key==='ArrowRight') setFlip('R',false);
+});
+addEventListener('blur',()=>{ flipL.active=flipR.active=false; plungerHeld=false; });
+
+function bindTouch(id,dn,up){
+  const b=document.getElementById(id);
+  b.addEventListener('touchstart',e=>{e.preventDefault();ac();dn();},{passive:false});
+  b.addEventListener('touchend',e=>{e.preventDefault();up();},{passive:false});
+  b.addEventListener('touchcancel',e=>{e.preventDefault();up();},{passive:false});
+  b.addEventListener('mousedown',e=>{e.preventDefault();ac();dn();});
+  b.addEventListener('mouseup',e=>{e.preventDefault();up();});
+  b.addEventListener('mouseleave',()=>up());
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+}
+bindTouch('tL',()=>setFlip('L',true),()=>setFlip('L',false));
+bindTouch('tR',()=>setFlip('R',true),()=>setFlip('R',false));
+bindTouch('tLaunch',()=>{plungerHeld=true; if(!musicTimer) startMusic();},()=>{plungerHeld=false;launch();});
+document.addEventListener('touchmove',e=>{ if(!inLane) e.preventDefault(); },{passive:false});
+
+function blurAll(){ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+document.getElementById('newBtn').onclick=e=>{ ac(); newGame(); startMusic(); e.currentTarget.blur(); blurAll(); };
+document.getElementById('sfxBtn').onclick=e=>{
+  sfxOn=!sfxOn;
+  document.getElementById('sfxBtn').textContent=sfxOn?'🔊 SFX on':'🔇 SFX off';
+  e.currentTarget.blur(); blurAll();
+};
+document.getElementById('musicBtn').onclick=e=>{
+  ac(); musicOn=!musicOn;
+  document.getElementById('musicBtn').textContent=musicOn?'🎵 Music on':'🎵 Music off';
+  if(musicOn) startMusic(); else stopMusic();
+  e.currentTarget.blur(); blurAll();
+};
+
+function fit(){
+  const isTouch=matchMedia('(hover:none)').matches;
+  if(!isTouch){ cv.style.width=''; cv.style.height=''; return; }
+  // measure everything that isn't the canvas, rather than guessing
+  const chrome =
+      (document.querySelector('h1')?.offsetHeight||0)
+    + (document.getElementById('hud')?.offsetHeight||0)
+    + (document.getElementById('touch')?.offsetHeight||0)
+    + 84;                                  // button row + gaps + safe area
+  const availH = window.innerHeight - chrome;
+  const availW = window.innerWidth - 12;
+  const sc = Math.min(availW/W, availH/H);
+  cv.style.width  = Math.floor(W*sc)+'px';
+  cv.style.height = Math.floor(H*sc)+'px';
+}
+addEventListener('resize',fit);
+addEventListener('orientationchange',()=>setTimeout(fit,250));
+setTimeout(fit,60); setTimeout(fit,400);
+
+newGame();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

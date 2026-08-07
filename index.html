@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arcade — Pixel Quest & Pinball</title>
+<meta name="description" content="Two free browser games: Pixel Quest, a platformer, and Pinball. Play instantly on phone or laptop. No install, no ads.">
+
+<!-- social preview -->
+<meta property="og:title" content="Arcade — Pixel Quest & Pinball">
+<meta property="og:description" content="Two free browser games. Play instantly, no install.">
+<meta property="og:type" content="website">
+
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(233,69,96,.22), transparent 45%),
+      radial-gradient(circle at 80% 10%, rgba(77,208,255,.18), transparent 45%),
+      #0b0a1a;
+    font-family:'Trebuchet MS', Arial, sans-serif;
+    color:#fff; display:flex; flex-direction:column; align-items:center;
+    padding:36px 18px 40px; -webkit-tap-highlight-color:transparent;
+  }
+
+  header { text-align:center; margin-bottom:32px; }
+  h1 {
+    font-size:46px; letter-spacing:9px; margin-bottom:8px;
+    text-shadow:0 0 16px #ff2e88, 0 0 42px rgba(255,46,136,.55);
+  }
+  .tag { color:#8f8bc0; font-size:14.5px; letter-spacing:1.5px; }
+
+  .games {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));
+    gap:22px; width:100%; max-width:760px;
+  }
+
+  .card {
+    position:relative; display:block; text-decoration:none; color:inherit;
+    background:linear-gradient(160deg, #1b1740, #14112e);
+    border:2px solid #2e2a5e; border-radius:18px; padding:22px 22px 24px;
+    transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    overflow:hidden;
+  }
+  .card:hover { transform:translateY(-6px); }
+  .card::after {
+    content:''; position:absolute; inset:0; opacity:0; transition:opacity .16s;
+    background:radial-gradient(circle at 50% 0%, rgba(255,255,255,.07), transparent 60%);
+  }
+  .card:hover::after { opacity:1; }
+
+  .card.platformer:hover { border-color:#2ed573; box-shadow:0 14px 34px rgba(46,213,115,.22); }
+  .card.pinball:hover    { border-color:#ff2e88; box-shadow:0 14px 34px rgba(255,46,136,.22); }
+
+  .art { height:132px; border-radius:12px; margin-bottom:16px; position:relative; overflow:hidden; }
+  .art.pf { background:linear-gradient(#5c94fc, #a8d8ff); }
+  .art.pb { background:linear-gradient(#241b52, #120d2c); }
+
+  .name { font-size:22px; font-weight:bold; letter-spacing:2px; margin-bottom:6px; }
+  .platformer .name { color:#2ed573; }
+  .pinball .name { color:#ff2e88; }
+  .desc { color:#9d99c8; font-size:13.5px; line-height:1.65; margin-bottom:14px; }
+
+  .chips { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:16px; }
+  .chip {
+    font-size:11px; padding:4px 10px; border-radius:20px;
+    background:rgba(255,255,255,.07); color:#b9b5e0; border:1px solid rgba(255,255,255,.09);
+  }
+
+  .play {
+    display:inline-block; padding:11px 26px; border-radius:9px;
+    font-weight:bold; font-size:15px; letter-spacing:1px;
+  }
+  .platformer .play { background:#2ed573; color:#062d16; box-shadow:0 4px 0 #1e9e52; }
+  .pinball .play    { background:#ff2e88; color:#fff;    box-shadow:0 4px 0 #a01a58; }
+  .card:active .play { transform:translateY(3px); box-shadow:none; }
+
+  footer { margin-top:38px; color:#6f6b97; font-size:12.5px; text-align:center; line-height:1.9; }
+  footer b { color:#9d99c8; }
+
+  @media (max-width:520px) {
+    h1 { font-size:32px; letter-spacing:6px; }
+    body { padding:26px 14px 32px; }
+    .art { height:110px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ARCADE</h1>
+  <div class="tag">TWO FREE GAMES · NO INSTALL · PHONE OR LAPTOP</div>
+</header>
+
+<div class="games">
+
+  <a class="card platformer" href="platformer.html">
+    <div class="art pf">
+      <svg viewBox="0 0 300 132" width="100%" height="100%">
+        <!-- sky already from gradient; hills -->
+        <circle cx="40" cy="150" r="60" fill="#3d8b40"/>
+        <circle cx="170" cy="158" r="70" fill="#3d8b40"/>
+        <circle cx="270" cy="150" r="55" fill="#3d8b40"/>
+        <!-- clouds -->
+        <g fill="rgba(255,255,255,.85)">
+          <circle cx="60" cy="28" r="11"/><circle cx="74" cy="21" r="14"/><circle cx="90" cy="28" r="11"/>
+          <circle cx="210" cy="34" r="9"/><circle cx="222" cy="28" r="12"/><circle cx="235" cy="34" r="9"/>
+        </g>
+        <!-- ground + platform -->
+        <rect x="0" y="112" width="300" height="20" fill="#8b5a2b"/>
+        <rect x="0" y="112" width="300" height="5" fill="#4caf50"/>
+        <rect x="176" y="80" width="62" height="11" fill="#8b5a2b"/>
+        <rect x="176" y="80" width="62" height="4" fill="#4caf50"/>
+        <!-- coins -->
+        <g fill="#ffd700" stroke="#c79100" stroke-width="2">
+          <circle cx="120" cy="74" r="7"/><circle cx="146" cy="62" r="7"/><circle cx="172" cy="56" r="7"/>
+        </g>
+        <!-- hero -->
+        <g transform="translate(56,74)">
+          <rect x="4" y="30" width="6" height="8" fill="#333"/>
+          <rect x="16" y="30" width="6" height="8" fill="#333"/>
+          <rect x="2" y="12" width="22" height="20" rx="4" fill="#2e86de"/>
+          <rect x="7" y="17" width="12" height="11" rx="3" fill="#ffd32a"/>
+          <circle cx="13" cy="9" r="9" fill="#ffdca8"/>
+          <path d="M4 9a9 9 0 0 1 18 0z" fill="#e94560"/>
+          <circle cx="16" cy="9" r="2.2" fill="#fff"/><circle cx="16.6" cy="9" r="1.1" fill="#000"/>
+        </g>
+        <!-- goober -->
+        <g transform="translate(246,86)">
+          <ellipse cx="13" cy="14" rx="13" ry="11" fill="#c0392b"/>
+          <circle cx="8" cy="11" r="3.4" fill="#fff"/><circle cx="18" cy="11" r="3.4" fill="#fff"/>
+          <circle cx="7.2" cy="11" r="1.6" fill="#000"/><circle cx="17.2" cy="11" r="1.6" fill="#000"/>
+        </g>
+      </svg>
+    </div>
+    <div class="name">PIXEL QUEST</div>
+    <div class="desc">
+      A platformer across four levels. Run, double jump, squash enemies and beat
+      the Goober King. Six heroes, each with its own ability.
+    </div>
+    <div class="chips">
+      <span class="chip">4 levels</span>
+      <span class="chip">Boss fight</span>
+      <span class="chip">6 characters</span>
+      <span class="chip">Saves progress</span>
+      <span class="chip">Best in landscape</span>
+    </div>
+    <span class="play">PLAY ▶</span>
+  </a>
+
+  <a class="card pinball" href="pinball.html">
+    <div class="art pb">
+      <svg viewBox="0 0 300 132" width="100%" height="100%">
+        <g stroke="#6c5ce7" stroke-width="3" fill="none" opacity=".55">
+          <circle cx="150" cy="30" r="42"/><circle cx="150" cy="30" r="70"/>
+        </g>
+        <!-- ramp tube -->
+        <path d="M40 118 C 26 70, 60 32, 150 30 C 240 32, 274 70, 260 118"
+              stroke="#00e5a0" stroke-width="13" fill="none" opacity=".2" stroke-linecap="round"/>
+        <path d="M40 118 C 26 70, 60 32, 150 30 C 240 32, 274 70, 260 118"
+              stroke="#00e5a0" stroke-width="2" fill="none" opacity=".65" stroke-linecap="round"/>
+        <!-- bumpers -->
+        <g>
+          <circle cx="104" cy="52" r="15" fill="#4dd0ff" opacity=".9"/>
+          <circle cx="104" cy="52" r="8" fill="#1b1440"/>
+          <circle cx="150" cy="34" r="15" fill="#4dd0ff" opacity=".9"/>
+          <circle cx="150" cy="34" r="8" fill="#1b1440"/>
+          <circle cx="196" cy="52" r="15" fill="#4dd0ff" opacity=".9"/>
+          <circle cx="196" cy="52" r="8" fill="#1b1440"/>
+        </g>
+        <!-- targets -->
+        <g fill="#ffd700"><rect x="62" y="78" width="9" height="24" rx="2"/><rect x="229" y="78" width="9" height="24" rx="2"/></g>
+        <!-- flippers -->
+        <g stroke="#ff2e88" stroke-width="13" stroke-linecap="round">
+          <line x1="104" y1="112" x2="142" y2="126"/>
+          <line x1="196" y1="112" x2="158" y2="126"/>
+        </g>
+        <!-- ball -->
+        <circle cx="150" cy="86" r="8" fill="#fff"/>
+        <circle cx="147" cy="83" r="3" fill="#e8e8ff"/>
+      </svg>
+    </div>
+    <div class="name">PINBALL</div>
+    <div class="desc">
+      Real flipper physics, ramps and multiball. Climb from Rookie to Nightmare —
+      the table repaints and grows new hardware every level.
+    </div>
+    <div class="chips">
+      <span class="chip">6 difficulty tiers</span>
+      <span class="chip">Ramps</span>
+      <span class="chip">Multiball</span>
+      <span class="chip">Skill shot</span>
+      <span class="chip">Saves best score</span>
+    </div>
+    <span class="play">PLAY ▶</span>
+  </a>
+
+</div>
+
+<footer>
+  Made with <b>Claude</b> · plays in any browser, nothing to install<br>
+  Progress and high scores are saved on your own device
+</footer>
+
+</body>
+</html>
