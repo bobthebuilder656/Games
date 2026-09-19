@@ -13,76 +13,133 @@
 
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
+  :root {
+    --bg:#07061a; --green:#2ed573; --pink:#ff2e88; --cyan:#4dd0ff;
+    --muted:#9d99c8; --line:rgba(255,255,255,.12);
+  }
   body {
     min-height:100vh;
     background:
-      radial-gradient(circle at 20% 0%, rgba(233,69,96,.22), transparent 45%),
-      radial-gradient(circle at 80% 10%, rgba(77,208,255,.18), transparent 45%),
-      #0b0a1a;
+      radial-gradient(ellipse 60% 50% at 15% 0%, rgba(46,213,115,.16), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 85% 0%, rgba(255,46,136,.18), transparent 70%),
+      var(--bg);
     font-family:'Trebuchet MS', Arial, sans-serif;
     color:#fff; display:flex; flex-direction:column; align-items:center;
-    padding:36px 18px 40px; -webkit-tap-highlight-color:transparent;
+    padding:40px 18px 40px; -webkit-tap-highlight-color:transparent;
   }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
-  header { text-align:center; margin-bottom:32px; }
+  /* ---------- header ---------- */
+  header { text-align:center; margin-bottom:30px; }
   h1 {
-    font-size:46px; letter-spacing:9px; margin-bottom:8px;
-    text-shadow:0 0 16px #ff2e88, 0 0 42px rgba(255,46,136,.55);
+    font-size:clamp(38px, 7vw, 64px); letter-spacing:.2em; margin-right:-.2em; margin-bottom:10px;
+    background:linear-gradient(90deg, var(--green), var(--cyan) 50%, var(--pink));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 20px rgba(77,208,255,.3));
   }
-  .tag { color:#8f8bc0; font-size:14.5px; letter-spacing:1.5px; }
-
-  .games {
-    display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));
-    gap:22px; width:100%; max-width:760px;
+  .tag { color:#8f8bc0; font-size:14px; letter-spacing:1.5px; }
+  .welcome {
+    display:inline-block; margin-top:16px; padding:6px 16px; border-radius:20px; font-size:13px;
+    color:#d8d5ff; background:rgba(255,255,255,.07); border:1px solid var(--line);
   }
 
-  .card {
-    position:relative; display:block; text-decoration:none; color:inherit;
-    background:linear-gradient(160deg, #1b1740, #14112e);
-    border:2px solid #2e2a5e; border-radius:18px; padding:22px 22px 24px;
-    transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
-    overflow:hidden;
+  /* ---------- the stage: one scene, two worlds ---------- */
+  .stage {
+    position:relative; width:100%; max-width:1100px; overflow:hidden;
+    display:grid; grid-template-columns:1fr 1fr;
+    border-radius:24px; border:1px solid var(--line);
+    box-shadow:-24px 0 70px -34px rgba(46,213,115,.55), 24px 0 70px -34px rgba(255,46,136,.55), 0 30px 60px -30px #000;
   }
-  .card:hover { transform:translateY(-6px); }
-  .card::after {
-    content:''; position:absolute; inset:0; opacity:0; transition:opacity .16s;
-    background:radial-gradient(circle at 50% 0%, rgba(255,255,255,.07), transparent 60%);
+  .world {
+    position:relative; isolation:isolate; overflow:hidden; min-height:620px;
+    display:flex; flex-direction:column; justify-content:flex-end;
+    padding:28px 30px 32px; color:inherit; text-decoration:none; outline:none;
   }
-  .card:hover::after { opacity:1; }
+  .world.pf { background:linear-gradient(#1a1050, #4a1f77 45%, #1d4a45); }
+  .world.pb {
+    background:
+      radial-gradient(rgba(108,92,231,.22) 1px, transparent 1.5px) 0 0 / 22px 22px,
+      linear-gradient(#150f36, #07061a);
+  }
+  .world canvas {
+    position:absolute; inset:0; width:100%; height:100%; z-index:-2;
+    transition:filter .3s ease;
+  }
+  .world.pf canvas { image-rendering:pixelated; }
+  .world::after {           /* fade so the text always reads */
+    content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
+    background:linear-gradient(to top, rgba(7,6,26,.97) 0%, rgba(7,6,26,.9) 34%, rgba(7,6,26,0) 66%);
+  }
+  .world:hover canvas, .world:focus-visible canvas, .world.picked canvas { filter:brightness(1.18) saturate(1.15); }
+  .world:focus-visible { box-shadow:inset 0 0 0 3px #fff; }
+  .world.pf.picked { box-shadow:inset 0 0 0 3px var(--green), inset 0 0 60px rgba(46,213,115,.45); }
+  .world.pb.picked { box-shadow:inset 0 0 0 3px var(--pink),  inset 0 0 60px rgba(255,46,136,.45); }
 
-  .card.platformer:hover { border-color:#2ed573; box-shadow:0 14px 34px rgba(46,213,115,.22); }
-  .card.pinball:hover    { border-color:#ff2e88; box-shadow:0 14px 34px rgba(255,46,136,.22); }
+  .name { font-size:30px; font-weight:bold; letter-spacing:3px; margin-bottom:8px; }
+  .pf .name { color:var(--green); font-family:'Courier New', monospace; font-weight:900; text-shadow:3px 3px 0 #0b3a20; }
+  .pb .name { color:var(--pink); font-style:italic; text-shadow:0 0 18px rgba(255,46,136,.7); }
+  .desc { color:#b2aedb; font-size:14px; line-height:1.65; margin-bottom:14px; max-width:44ch; }
 
-  .art { height:132px; border-radius:12px; margin-bottom:16px; position:relative; overflow:hidden; }
-  .art.pf { background:linear-gradient(#5c94fc, #a8d8ff); }
-  .art.pb { background:linear-gradient(#241b52, #120d2c); }
-
-  .name { font-size:22px; font-weight:bold; letter-spacing:2px; margin-bottom:6px; }
-  .platformer .name { color:#2ed573; }
-  .pinball .name { color:#ff2e88; }
-  .desc { color:#9d99c8; font-size:13.5px; line-height:1.65; margin-bottom:14px; }
-
-  .chips { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:16px; }
+  .chips { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:14px; }
   .chip {
     font-size:11px; padding:4px 10px; border-radius:20px;
-    background:rgba(255,255,255,.07); color:#b9b5e0; border:1px solid rgba(255,255,255,.09);
+    background:rgba(255,255,255,.07); color:#c3bfe8; border:1px solid rgba(255,255,255,.1);
   }
+
+  .prog { min-height:22px; font-size:13px; color:#c7c3f0; margin-bottom:16px; display:flex; flex-wrap:wrap; gap:4px 14px; }
+  .prog span b { font-size:15px; }
+  .pf .prog b { color:var(--green); }
+  .pb .prog b { color:var(--pink); }
+  .prog .fresh { color:#8f8bc0; font-style:italic; }
 
   .play {
-    display:inline-block; padding:11px 26px; border-radius:9px;
+    align-self:flex-start; display:inline-block; padding:12px 28px; border-radius:10px;
     font-weight:bold; font-size:15px; letter-spacing:1px;
+    transition:transform .15s ease;
   }
-  .platformer .play { background:#2ed573; color:#062d16; box-shadow:0 4px 0 #1e9e52; }
-  .pinball .play    { background:#ff2e88; color:#fff;    box-shadow:0 4px 0 #a01a58; }
-  .card:active .play { transform:translateY(3px); box-shadow:none; }
+  .pf .play { background:var(--green); color:#062d16; box-shadow:0 4px 0 #1e9e52; }
+  .pb .play { background:var(--pink);  color:#fff;    box-shadow:0 4px 0 #a01a58; }
+  .world:hover .play, .world:focus-visible .play { transform:translateY(-3px); }
+  .world:active .play { transform:translateY(3px); box-shadow:none; }
 
-  footer { margin-top:38px; color:#6f6b97; font-size:12.5px; text-align:center; line-height:1.9; }
+  /* ---------- seam + surprise button ---------- */
+  .seam {
+    position:absolute; z-index:3; pointer-events:none;
+    left:50%; top:0; bottom:0; width:2px; transform:translateX(-1px);
+    background:linear-gradient(to bottom, transparent, rgba(255,255,255,.85) 15%, rgba(255,255,255,.85) 85%, transparent);
+    box-shadow:-7px 0 20px rgba(46,213,115,.7), 7px 0 20px rgba(255,46,136,.7);
+  }
+  .surprise {
+    position:absolute; z-index:5; left:50%; top:50%; transform:translate(-50%,-50%);
+    min-width:150px; padding:11px 18px; border-radius:30px; cursor:pointer;
+    font:bold 12.5px/1 'Trebuchet MS', Arial, sans-serif; letter-spacing:1.5px; color:#fff;
+    background:#0d0a26; border:2px solid transparent;
+    background-image:linear-gradient(#0d0a26,#0d0a26), linear-gradient(90deg, var(--green), var(--pink));
+    background-origin:border-box; background-clip:padding-box, border-box;
+    box-shadow:0 0 22px rgba(255,255,255,.14), 0 6px 18px rgba(0,0,0,.6);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .surprise:hover:not(:disabled) { transform:translate(-50%,-50%) scale(1.06); box-shadow:0 0 30px rgba(255,255,255,.28), 0 6px 18px rgba(0,0,0,.6); }
+  .surprise:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+  .surprise:disabled { cursor:default; }
+  .surprise.spin .dice { display:inline-block; animation:roll .5s linear infinite; }
+  .dice { margin-right:6px; }
+  @keyframes roll { to { transform:rotate(360deg); } }
+
+  footer { margin-top:34px; color:#6f6b97; font-size:12.5px; text-align:center; line-height:1.9; }
   footer b { color:#9d99c8; }
 
-  @media (max-width:520px) {
-    h1 { font-size:32px; letter-spacing:6px; }
-    body { padding:26px 14px 32px; }
-    .art { height:110px; }
+  @media (max-width:860px) {
+    .stage { grid-template-columns:1fr; }
+    .world { min-height:560px; padding:24px 22px 28px; }
+    .seam { left:0; right:0; top:50%; bottom:auto; width:auto; height:2px; transform:translateY(-1px);
+      background:linear-gradient(to right, transparent, rgba(255,255,255,.85) 15%, rgba(255,255,255,.85) 85%, transparent);
+      box-shadow:0 -7px 20px rgba(46,213,115,.7), 0 7px 20px rgba(255,46,136,.7); }
+    body { padding:28px 14px 32px; }
+    .name { font-size:26px; }
+  }
+  @media (prefers-reduced-motion:reduce) {
+    * { transition:none !important; animation:none !important; }
   }
 </style>
 </head>
@@ -91,117 +148,491 @@
 <header>
   <h1>ARCADE</h1>
   <div class="tag">TWO FREE GAMES · NO INSTALL · PHONE OR LAPTOP</div>
+  <div class="welcome" id="welcome" hidden>Welcome back. Your progress is saved on this device.</div>
 </header>
 
-<div class="games">
+<main class="stage" id="stage">
 
-  <a class="card platformer" href="platformer.html">
-    <div class="art pf">
-      <svg viewBox="0 0 300 132" width="100%" height="100%">
-        <!-- sky already from gradient; hills -->
-        <circle cx="40" cy="150" r="60" fill="#3d8b40"/>
-        <circle cx="170" cy="158" r="70" fill="#3d8b40"/>
-        <circle cx="270" cy="150" r="55" fill="#3d8b40"/>
-        <!-- clouds -->
-        <g fill="rgba(255,255,255,.85)">
-          <circle cx="60" cy="28" r="11"/><circle cx="74" cy="21" r="14"/><circle cx="90" cy="28" r="11"/>
-          <circle cx="210" cy="34" r="9"/><circle cx="222" cy="28" r="12"/><circle cx="235" cy="34" r="9"/>
-        </g>
-        <!-- ground + platform -->
-        <rect x="0" y="112" width="300" height="20" fill="#8b5a2b"/>
-        <rect x="0" y="112" width="300" height="5" fill="#4caf50"/>
-        <rect x="176" y="80" width="62" height="11" fill="#8b5a2b"/>
-        <rect x="176" y="80" width="62" height="4" fill="#4caf50"/>
-        <!-- coins -->
-        <g fill="#ffd700" stroke="#c79100" stroke-width="2">
-          <circle cx="120" cy="74" r="7"/><circle cx="146" cy="62" r="7"/><circle cx="172" cy="56" r="7"/>
-        </g>
-        <!-- hero -->
-        <g transform="translate(56,74)">
-          <rect x="4" y="30" width="6" height="8" fill="#333"/>
-          <rect x="16" y="30" width="6" height="8" fill="#333"/>
-          <rect x="2" y="12" width="22" height="20" rx="4" fill="#2e86de"/>
-          <rect x="7" y="17" width="12" height="11" rx="3" fill="#ffd32a"/>
-          <circle cx="13" cy="9" r="9" fill="#ffdca8"/>
-          <path d="M4 9a9 9 0 0 1 18 0z" fill="#e94560"/>
-          <circle cx="16" cy="9" r="2.2" fill="#fff"/><circle cx="16.6" cy="9" r="1.1" fill="#000"/>
-        </g>
-        <!-- goober -->
-        <g transform="translate(246,86)">
-          <ellipse cx="13" cy="14" rx="13" ry="11" fill="#c0392b"/>
-          <circle cx="8" cy="11" r="3.4" fill="#fff"/><circle cx="18" cy="11" r="3.4" fill="#fff"/>
-          <circle cx="7.2" cy="11" r="1.6" fill="#000"/><circle cx="17.2" cy="11" r="1.6" fill="#000"/>
-        </g>
-      </svg>
+  <a class="world pf" id="wPf" href="platformer.html" aria-label="Play Pixel Quest, a platformer">
+    <canvas id="cPf" aria-hidden="true"></canvas>
+    <div class="content">
+      <h2 class="name">PIXEL QUEST</h2>
+      <p class="desc">
+        A platformer with themed levels and a boss at the end. Run, double jump and
+        squash your way to the Goober King. Every hero has its own ability.
+      </p>
+      <div class="chips">
+        <span class="chip">Boss fight</span>
+        <span class="chip">Choose your hero</span>
+        <span class="chip">Saves progress</span>
+        <span class="chip">Best in landscape</span>
+      </div>
+      <div class="prog" id="pProg"></div>
+      <span class="play" id="pPlay">PLAY ▶</span>
     </div>
-    <div class="name">PIXEL QUEST</div>
-    <div class="desc">
-      A platformer across four levels. Run, double jump, squash enemies and beat
-      the Goober King. Six heroes, each with its own ability.
-    </div>
-    <div class="chips">
-      <span class="chip">4 levels</span>
-      <span class="chip">Boss fight</span>
-      <span class="chip">6 characters</span>
-      <span class="chip">Saves progress</span>
-      <span class="chip">Best in landscape</span>
-    </div>
-    <span class="play">PLAY ▶</span>
   </a>
 
-  <a class="card pinball" href="pinball.html">
-    <div class="art pb">
-      <svg viewBox="0 0 300 132" width="100%" height="100%">
-        <g stroke="#6c5ce7" stroke-width="3" fill="none" opacity=".55">
-          <circle cx="150" cy="30" r="42"/><circle cx="150" cy="30" r="70"/>
-        </g>
-        <!-- ramp tube -->
-        <path d="M40 118 C 26 70, 60 32, 150 30 C 240 32, 274 70, 260 118"
-              stroke="#00e5a0" stroke-width="13" fill="none" opacity=".2" stroke-linecap="round"/>
-        <path d="M40 118 C 26 70, 60 32, 150 30 C 240 32, 274 70, 260 118"
-              stroke="#00e5a0" stroke-width="2" fill="none" opacity=".65" stroke-linecap="round"/>
-        <!-- bumpers -->
-        <g>
-          <circle cx="104" cy="52" r="15" fill="#4dd0ff" opacity=".9"/>
-          <circle cx="104" cy="52" r="8" fill="#1b1440"/>
-          <circle cx="150" cy="34" r="15" fill="#4dd0ff" opacity=".9"/>
-          <circle cx="150" cy="34" r="8" fill="#1b1440"/>
-          <circle cx="196" cy="52" r="15" fill="#4dd0ff" opacity=".9"/>
-          <circle cx="196" cy="52" r="8" fill="#1b1440"/>
-        </g>
-        <!-- targets -->
-        <g fill="#ffd700"><rect x="62" y="78" width="9" height="24" rx="2"/><rect x="229" y="78" width="9" height="24" rx="2"/></g>
-        <!-- flippers -->
-        <g stroke="#ff2e88" stroke-width="13" stroke-linecap="round">
-          <line x1="104" y1="112" x2="142" y2="126"/>
-          <line x1="196" y1="112" x2="158" y2="126"/>
-        </g>
-        <!-- ball -->
-        <circle cx="150" cy="86" r="8" fill="#fff"/>
-        <circle cx="147" cy="83" r="3" fill="#e8e8ff"/>
-      </svg>
+  <a class="world pb" id="wPb" href="pinball.html" aria-label="Play Pinball">
+    <canvas id="cPb" aria-hidden="true"></canvas>
+    <div class="content">
+      <h2 class="name">PINBALL</h2>
+      <p class="desc">
+        Real flipper physics, ramps and multiball. Climb from Rookie to Nightmare —
+        the table repaints and grows new hardware as you rise.
+      </p>
+      <div class="chips">
+        <span class="chip">Multiball</span>
+        <span class="chip">Ramps</span>
+        <span class="chip">Skill shot</span>
+        <span class="chip">Saves best score</span>
+      </div>
+      <div class="prog" id="bProg"></div>
+      <span class="play" id="bPlay">PLAY ▶</span>
     </div>
-    <div class="name">PINBALL</div>
-    <div class="desc">
-      Real flipper physics, ramps and multiball. Climb from Rookie to Nightmare —
-      the table repaints and grows new hardware every level.
-    </div>
-    <div class="chips">
-      <span class="chip">6 difficulty tiers</span>
-      <span class="chip">Ramps</span>
-      <span class="chip">Multiball</span>
-      <span class="chip">Skill shot</span>
-      <span class="chip">Saves best score</span>
-    </div>
-    <span class="play">PLAY ▶</span>
   </a>
 
-</div>
+  <div class="seam" aria-hidden="true"></div>
+  <button class="surprise" id="surprise" type="button"><span class="dice" aria-hidden="true">🎲</span><span id="sLabel">SURPRISE ME</span></button>
+  <span class="sr" id="sr" aria-live="polite"></span>
+</main>
 
 <footer>
   Made with <b>Claude</b> · plays in any browser, nothing to install<br>
-  Progress and high scores are saved on your own device
+  Progress and high scores are saved on your own device · The animated scenes above are illustrations
 </footer>
 
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* =====================================================================
+     PROGRESS — read-only, and only what the games actually saved.
+     Every read is guarded: a missing/changed key just hides that stat.
+     ===================================================================== */
+  function readJSON(key) {
+    try { var r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch (e) { return null; }
+  }
+  function readNum(key) {
+    try { var n = Number(localStorage.getItem(key)); return isFinite(n) && n > 0 ? n : 0; } catch (e) { return 0; }
+  }
+  function posNum(v) { v = Number(v); return isFinite(v) && v > 0 ? v : 0; }
+  function stat(parent, value, label) {
+    var s = document.createElement('span'), b = document.createElement('b');
+    b.textContent = value; s.appendChild(b); s.appendChild(document.createTextNode(' ' + label));
+    parent.appendChild(s);
+  }
+  function fresh(parent) {
+    var s = document.createElement('span'); s.className = 'fresh';
+    s.textContent = 'New here? Jump in.'; parent.appendChild(s);
+  }
+
+  var has = { pf: false, pb: false };
+
+  function renderProgress() {
+    var save = readJSON('pixelquest.save.v1') || {};
+    var cleared = Array.isArray(save.cleared) ? save.cleared.length : 0;
+    var pfBest = posNum(save.best);
+    var p = $('pProg'); p.textContent = '';
+    if (cleared) stat(p, cleared, cleared === 1 ? 'level cleared' : 'levels cleared');
+    if (pfBest) stat(p, pfBest.toLocaleString(), 'best score');
+    has.pf = !!(cleared || pfBest);
+    if (!has.pf) fresh(p);
+    $('pPlay').textContent = cleared ? 'CONTINUE ▶' : 'PLAY ▶';
+
+    var pbBest = readNum('pinball.best');
+    var games = posNum((readJSON('pinball.stats') || {}).gamesPlayed);
+    var b = $('bProg'); b.textContent = '';
+    if (pbBest) stat(b, pbBest.toLocaleString(), 'best score');
+    if (games) stat(b, games, games === 1 ? 'game played' : 'games played');
+    has.pb = !!(pbBest || games);
+    if (!has.pb) fresh(b);
+    $('bPlay').textContent = pbBest ? 'BEAT YOUR BEST ▶' : 'PLAY ▶';
+
+    $('welcome').hidden = !(has.pf || has.pb);
+  }
+  renderProgress();
+
+  /* =====================================================================
+     SURPRISE ME — leans toward a game with no saved progress yet.
+     ===================================================================== */
+  var sBtn = $('surprise'), sLabel = $('sLabel'), sTimer = null;
+  var NAMES = { pf: 'PIXEL QUEST', pb: 'PINBALL' };
+  var HREF  = { pf: 'platformer.html', pb: 'pinball.html' };
+  var WORLD = { pf: $('wPf'), pb: $('wPb') };
+
+  function resetSurprise() {
+    clearInterval(sTimer);
+    sBtn.disabled = false; sBtn.classList.remove('spin');
+    sLabel.textContent = 'SURPRISE ME';
+    WORLD.pf.classList.remove('picked'); WORLD.pb.classList.remove('picked');
+  }
+  sBtn.addEventListener('click', function () {
+    if (sBtn.disabled) return;
+    var pool = (has.pf !== has.pb) ? [has.pf ? 'pb' : 'pf'] : ['pf', 'pb'];
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    sBtn.disabled = true;
+    function land() {
+      clearInterval(sTimer); sBtn.classList.remove('spin');
+      sLabel.textContent = '→ ' + NAMES[pick];
+      WORLD[pick].classList.add('picked');
+      $('sr').textContent = 'Opening ' + NAMES[pick];
+      setTimeout(function () { location.href = HREF[pick]; }, RM ? 250 : 650);
+    }
+    if (RM) { land(); return; }
+    sBtn.classList.add('spin');
+    var flip = 0;
+    sTimer = setInterval(function () { flip ^= 1; sLabel.textContent = flip ? NAMES.pb : NAMES.pf; }, 90);
+    setTimeout(land, 950);
+  });
+  window.addEventListener('pageshow', function () { resetSurprise(); renderProgress(); });
+
+  /* =====================================================================
+     WORLD 1 — Pixel Quest: a tiny auto-runner drawn on a low-res canvas
+     ===================================================================== */
+  function makePixel(canvas) {
+    var ctx = canvas.getContext('2d');
+    var S = 3;                       // one logical pixel = 3 css pixels
+    var W = 0, H = 0, G = 0;         // canvas size, ground line
+    var t = 0, scroll = 0, nextX = 0;
+    var objs = [], stars = [], clouds = [];
+    var hero = { y: 0, vy: 0, air: false };
+    var V = 64, GRAV = 520, JUMP = 175, AIR = 2 * JUMP / GRAV;
+    var SKY = ['#0f0a33', '#1a1050', '#2a1566', '#4a1f77', '#7a2c7e', '#b0407a', '#e0665f'];
+
+    function heroX() { return Math.round(W * 0.27); }
+
+    function resize(w, h, limit) {
+      W = Math.max(60, Math.ceil(w / S)); H = Math.max(60, Math.ceil(h / S));
+      canvas.width = W; canvas.height = H;
+      G = Math.max(60, Math.floor(limit / S) - 8);
+      stars = []; clouds = [];
+      for (var i = 0; i < 40; i++) stars.push({ x: Math.random() * W, y: Math.random() * G * 0.55, p: Math.random() * 6 });
+      for (i = 0; i < 4; i++) clouds.push({ x: Math.random() * W * 1.3, y: 8 + Math.random() * G * 0.32, w: 16 + Math.random() * 16 });
+      objs = []; nextX = scroll + W * 0.7;
+    }
+
+    function coinArc(cx, n, base, peak) {
+      for (var i = 0; i < n; i++) {
+        var u = n === 1 ? 0 : (i - (n - 1) / 2) / ((n - 1) / 2);
+        objs.push({ k: 'c', x: cx + (i - (n - 1) / 2) * 9, h: base + peak * (1 - u * u), ph: i, got: false, gt: 0 });
+      }
+    }
+    function spawn() {
+      var r = Math.random(), x = nextX, w;
+      if (r < 0.4)      { w = 12; objs.push({ k: 'g', x: x, w: w, jumped: false }); coinArc(x + w / 2, 5, 8, 26); }
+      else if (r < 0.75){ w = 24; objs.push({ k: 'p', x: x, w: w, jumped: false }); coinArc(x + w / 2, 5, 8, 26); }
+      else              { w = 36; coinArc(x + 6, 4, 8, 0); }
+      nextX = x + w + 100 + Math.random() * 90;
+    }
+
+    function step(dt) {
+      t += dt; scroll += V * dt;
+      while (nextX < scroll + W + 60) spawn();
+      objs = objs.filter(function (o) { return o.x - scroll > -50 && !(o.got && o.gt > 0.35); });
+      var hx = heroX(), i, o;
+      if (!hero.air) {
+        for (i = 0; i < objs.length; i++) {
+          o = objs[i];
+          if ((o.k === 'g' || o.k === 'p') && !o.jumped) {
+            var d = o.x + o.w / 2 - scroll - hx;
+            if (d <= V * AIR / 2 && d > -o.w) { o.jumped = true; hero.air = true; hero.vy = JUMP; break; }
+          }
+        }
+      }
+      if (hero.air) {
+        hero.y += hero.vy * dt; hero.vy -= GRAV * dt;
+        if (hero.y <= 0) { hero.y = 0; hero.air = false; }
+      }
+      for (i = 0; i < objs.length; i++) {
+        o = objs[i];
+        if (o.k === 'c') {
+          if (o.got) o.gt += dt;
+          else if (Math.abs(o.x - scroll - hx) < 7 && Math.abs(o.h - (hero.y + 9)) < 13) o.got = true;
+        }
+      }
+    }
+
+    function hills(par, color, base, a1, f1, a2, f2) {
+      ctx.fillStyle = color;
+      for (var x = 0; x < W; x++) {
+        var p = (x + scroll * par);
+        var y = Math.round(base - a1 * Math.sin(p * f1) - a2 * Math.sin(p * f2 + 1));
+        if (y < G) ctx.fillRect(x, y, 1, G - y);
+      }
+    }
+
+    function drawHero(cx, fy) {
+      var x = cx - 6, ph = Math.floor(t * 10) % 2;
+      ctx.fillStyle = '#2b2b3a';
+      if (!hero.air) { ctx.fillRect(x + 2, fy - (ph ? 4 : 2), 3, ph ? 4 : 2); ctx.fillRect(x + 8, fy - (ph ? 2 : 4), 3, ph ? 2 : 4); }
+      else           { ctx.fillRect(x + 2, fy - 3, 3, 3); ctx.fillRect(x + 8, fy - 4, 3, 3); }
+      ctx.fillStyle = '#2e86de'; ctx.fillRect(x + 1, fy - 12, 11, 8);
+      ctx.fillStyle = '#ffd32a'; ctx.fillRect(x + 4, fy - 10, 5, 4);
+      ctx.fillStyle = '#ffdca8'; ctx.fillRect(x + 2, fy - 19, 9, 7);
+      ctx.fillStyle = '#e94560'; ctx.fillRect(x + 1, fy - 21, 11, 3); ctx.fillRect(x + 8, fy - 19, 5, 1);
+      ctx.fillStyle = '#fff';    ctx.fillRect(x + 8, fy - 16, 2, 2);
+      ctx.fillStyle = '#111';    ctx.fillRect(x + 9, fy - 16, 1, 2);
+    }
+
+    function draw() {
+      var i, o, bh = Math.ceil(G / SKY.length);
+      ctx.fillStyle = '#0d0820'; ctx.fillRect(0, 0, W, H);
+      for (i = 0; i < SKY.length; i++) { ctx.fillStyle = SKY[i]; ctx.fillRect(0, i * bh, W, bh); }
+      ctx.fillStyle = '#fff';
+      for (i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        ctx.globalAlpha = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.4 + s.p));
+        ctx.fillRect(s.x | 0, s.y | 0, 1, 1);
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ffe9b8'; ctx.beginPath(); ctx.arc(W * 0.8, G * 0.3, 9, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#e8c98a'; ctx.fillRect(Math.round(W * 0.8) - 3, Math.round(G * 0.3) - 2, 3, 2); ctx.fillRect(Math.round(W * 0.8) + 2, Math.round(G * 0.3) + 2, 2, 2);
+      ctx.fillStyle = 'rgba(255,255,255,.13)';
+      for (i = 0; i < clouds.length; i++) {
+        var c = clouds[i], span = W + 60;
+        var cx = (((c.x - scroll * 0.12) % span) + span) % span - 30;
+        ctx.fillRect(Math.round(cx), Math.round(c.y), Math.round(c.w), 4);
+        ctx.fillRect(Math.round(cx + 4), Math.round(c.y - 3), Math.round(c.w * 0.5), 3);
+      }
+      hills(0.15, '#2a1d5c', G - 34, 12, 0.03, 8, 0.071);
+      hills(0.4,  '#1c4d47', G - 14, 9, 0.05, 6, 0.13);
+
+      // ground
+      ctx.fillStyle = '#5b3a2e'; ctx.fillRect(0, G, W, H - G);
+      ctx.fillStyle = '#3fcf6a'; ctx.fillRect(0, G, W, 2);
+      ctx.fillStyle = '#2aa856'; ctx.fillRect(0, G + 2, W, 1);
+      ctx.fillStyle = '#4a2f26';
+      var off = scroll % 16;
+      for (var x = -off; x < W; x += 16) { ctx.fillRect(Math.round(x), G + 7, 8, 1); ctx.fillRect(Math.round(x + 8), G + 13, 8, 1); }
+      for (i = 0; i < objs.length; i++) {
+        o = objs[i];
+        if (o.k === 'p') {
+          var px = Math.round(o.x - scroll);
+          ctx.fillStyle = '#0d0820'; ctx.fillRect(px, G, o.w, H - G);
+          ctx.fillStyle = '#3b241e'; ctx.fillRect(px - 1, G + 3, 1, H - G); ctx.fillRect(px + o.w, G + 3, 1, H - G);
+        }
+      }
+      // enemies + coins
+      for (i = 0; i < objs.length; i++) {
+        o = objs[i];
+        var sx = Math.round(o.x - scroll);
+        if (o.k === 'g') {
+          var hop = Math.round(Math.abs(Math.sin(t * 4 + o.x)) * 3), gy = G - hop;
+          ctx.fillStyle = '#c0392b'; ctx.fillRect(sx + 1, gy - 10, 10, 10); ctx.fillRect(sx, gy - 7, 12, 7);
+          ctx.fillStyle = '#fff';    ctx.fillRect(sx + 2, gy - 8, 3, 3); ctx.fillRect(sx + 7, gy - 8, 3, 3);
+          ctx.fillStyle = '#000';    ctx.fillRect(sx + 2, gy - 7, 1, 2); ctx.fillRect(sx + 7, gy - 7, 1, 2);
+        } else if (o.k === 'c') {
+          var cy = Math.round(G - o.h - (o.got ? o.gt * 30 : 0)), cw = 1 + Math.round(Math.abs(Math.sin(t * 6 + o.ph)) * 3);
+          ctx.globalAlpha = o.got ? Math.max(0, 1 - o.gt / 0.35) : 1;
+          ctx.fillStyle = '#c79100'; ctx.fillRect(sx - 1 - (cw >> 1), cy - 3, cw + 2, 7);
+          ctx.fillStyle = '#ffd700'; ctx.fillRect(sx - (cw >> 1), cy - 2, cw, 5);
+          ctx.globalAlpha = 1;
+        }
+      }
+      drawHero(heroX(), Math.round(G - hero.y));
+    }
+
+    return { resize: resize, step: step, draw: draw };
+  }
+
+  /* =====================================================================
+     WORLD 2 — Pinball: a ball ricocheting between bumpers and flippers
+     ===================================================================== */
+  function makePinball(canvas) {
+    var ctx = canvas.getContext('2d');
+    var W = 0, H = 0, Ts = 0, dpr = 1, t = 0;
+    var GRAV = 720, BR = 7;
+    var bumpers = [], ball = null, trail = [], pops = [];
+    var fl = { l: 0, r: 0 }, flipY = 0, flipLen = 0, pivL = 0, pivR = 0;
+
+    function launch() {
+      ball = { x: W * (0.25 + Math.random() * 0.5), y: 12, vx: (Math.random() - 0.5) * 160, vy: 40 };
+      trail = [];
+    }
+
+    function resize(w, h, limit) {
+      dpr = Math.min(window.devicePixelRatio || 1, 2); W = w; H = h;
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      Ts = Math.max(180, limit - 16);
+      var br = Math.max(14, Math.min(24, Math.min(W, Ts) * 0.075));
+      bumpers = [
+        { x: W * 0.30, y: Ts * 0.36, r: br,        flash: 0 },
+        { x: W * 0.70, y: Ts * 0.36, r: br,        flash: 0 },
+        { x: W * 0.50, y: Ts * 0.20, r: br * 0.9,  flash: 0 },
+        { x: W * 0.50 + 3, y: Ts * 0.52, r: br * 0.8, flash: 0 }
+      ];
+      flipY = Ts - 12;
+      flipLen = Math.max(44, Math.min(86, W * 0.17));
+      pivL = W * 0.45 - flipLen; pivR = W * 0.55 + flipLen;
+      launch();
+    }
+
+    function step(dt) {
+      dt = Math.min(dt, 0.05); t += dt;
+      fl.l = Math.max(0, fl.l - dt * 5); fl.r = Math.max(0, fl.r - dt * 5);
+      var i, b, n = 3, h = dt / n;
+      for (i = 0; i < bumpers.length; i++) bumpers[i].flash = Math.max(0, bumpers[i].flash - dt * 3);
+      for (i = 0; i < pops.length; i++) { pops[i].t += dt; pops[i].y -= 30 * dt; }
+      pops = pops.filter(function (p) { return p.t < 0.8; });
+
+      for (var s = 0; s < n; s++) {
+        b = ball;
+        b.vy += GRAV * h;
+        if (b.y > Ts * 0.7 && b.vy > 0) {            // funnel toward the nearest flipper
+          var fx = b.x < W / 2 ? pivL + flipLen * 0.55 : pivR - flipLen * 0.55;
+          b.vx += (fx - b.x) * 8 * h; b.vx *= 1 - 2.5 * h;
+        }
+        b.x += b.vx * h; b.y += b.vy * h;
+        if (b.x < BR)     { b.x = BR;     b.vx = Math.abs(b.vx) * 0.9; }
+        if (b.x > W - BR) { b.x = W - BR; b.vx = -Math.abs(b.vx) * 0.9; }
+        if (b.y < BR)     { b.y = BR;     b.vy = Math.abs(b.vy) * 0.9; }
+        for (i = 0; i < bumpers.length; i++) {
+          var u = bumpers[i], dx = b.x - u.x, dy = b.y - u.y, d = Math.sqrt(dx * dx + dy * dy), min = u.r + BR;
+          if (d < min && d > 0) {
+            var nx = dx / d, ny = dy / d, dot = b.vx * nx + b.vy * ny;
+            b.x = u.x + nx * min; b.y = u.y + ny * min;
+            if (dot < 0) { b.vx -= 2 * dot * nx; b.vy -= 2 * dot * ny; }
+            b.vx += nx * 150; b.vy += ny * 150;
+            u.flash = 1; pops.push({ x: u.x, y: u.y - u.r, t: 0 });
+          }
+        }
+        var sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (sp > 640) { b.vx *= 640 / sp; b.vy *= 640 / sp; }
+        if (b.y >= flipY - BR && b.vy > 0) {         // flipper flick
+          fl[b.x < W / 2 ? 'l' : 'r'] = 1;
+          var rise = (flipY - Ts * 0.14) * (0.7 + Math.random() * 0.3);
+          b.vy = -Math.min(700, Math.sqrt(2 * GRAV * rise));
+          b.vx = Math.max(-300, Math.min(300, (W * (0.18 + Math.random() * 0.64) - b.x) * 1.1));
+          b.y = flipY - BR;
+        }
+      }
+      trail.push({ x: ball.x, y: ball.y });
+      if (trail.length > 16) trail.shift();
+    }
+
+    function flipper(px, dir, k) {
+      var a = 0.45 - k * 0.85;
+      ctx.beginPath(); ctx.moveTo(px, flipY);
+      ctx.lineTo(px + dir * Math.cos(a) * flipLen, flipY + Math.sin(a) * flipLen); ctx.stroke();
+    }
+
+    function draw() {
+      var i, u;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+
+      ctx.strokeStyle = 'rgba(108,92,231,.35)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(W / 2, Ts * 0.3, Ts * 0.17, 0, 6.3); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W / 2, Ts * 0.3, Ts * 0.3, 0, 6.3); ctx.stroke();
+
+      ctx.lineCap = 'round';                          // ramp
+      var ramp = function () {
+        ctx.beginPath(); ctx.moveTo(W * 0.1, Ts * 0.78);
+        ctx.bezierCurveTo(W * 0.0, Ts * 0.3, W * 0.2, Ts * 0.04, W * 0.5, Ts * 0.04);
+        ctx.bezierCurveTo(W * 0.8, Ts * 0.04, W * 1.0, Ts * 0.3, W * 0.9, Ts * 0.78); ctx.stroke();
+      };
+      ctx.strokeStyle = 'rgba(0,229,160,.14)'; ctx.lineWidth = 13; ramp();
+      ctx.strokeStyle = 'rgba(0,229,160,.7)';  ctx.lineWidth = 2;  ramp();
+
+      ctx.fillStyle = '#ffd700';                      // side targets
+      ctx.fillRect(2, Ts * 0.55, 8, 34); ctx.fillRect(W - 10, Ts * 0.55, 8, 34);
+      ctx.strokeStyle = '#6c5ce7'; ctx.lineWidth = 3; // inlane guides
+      ctx.beginPath(); ctx.moveTo(6, Ts * 0.74); ctx.lineTo(pivL, flipY - 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W - 6, Ts * 0.74); ctx.lineTo(pivR, flipY - 2); ctx.stroke();
+
+      for (i = 0; i < bumpers.length; i++) {
+        u = bumpers[i];
+        ctx.save();
+        ctx.shadowColor = '#4dd0ff'; ctx.shadowBlur = 10 + 18 * u.flash;
+        ctx.fillStyle = u.flash > 0.3 ? '#dff8ff' : '#4dd0ff';
+        ctx.beginPath(); ctx.arc(u.x, u.y, u.r * (1 + 0.12 * u.flash), 0, 6.3); ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = '#1b1440'; ctx.beginPath(); ctx.arc(u.x, u.y, u.r * 0.5, 0, 6.3); ctx.fill();
+        if (u.flash > 0) {
+          ctx.strokeStyle = 'rgba(255,255,255,' + u.flash.toFixed(2) + ')'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(u.x, u.y, u.r + (1 - u.flash) * 14, 0, 6.3); ctx.stroke();
+        }
+      }
+
+      ctx.save();                                     // flippers
+      ctx.shadowColor = '#ff2e88'; ctx.shadowBlur = 12;
+      ctx.strokeStyle = '#ff2e88'; ctx.lineWidth = 12; ctx.lineCap = 'round';
+      flipper(pivL, 1, fl.l); flipper(pivR, -1, fl.r);
+      ctx.restore();
+
+      for (i = 0; i < trail.length; i++) {            // ball + trail
+        ctx.fillStyle = 'rgba(120,220,255,' + ((i / trail.length) * 0.3).toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(trail[i].x, trail[i].y, BR * (0.4 + 0.5 * i / trail.length), 0, 6.3); ctx.fill();
+      }
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, BR, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#d6dcff'; ctx.beginPath(); ctx.arc(ball.x - 2, ball.y - 2, 2.6, 0, 6.3); ctx.fill();
+
+      ctx.font = 'bold 12px "Trebuchet MS", Arial, sans-serif'; ctx.textAlign = 'center';
+      for (i = 0; i < pops.length; i++) {
+        ctx.fillStyle = 'rgba(255,215,0,' + Math.max(0, 1 - pops[i].t / 0.8).toFixed(2) + ')';
+        ctx.fillText('+100', pops[i].x, pops[i].y);
+      }
+    }
+
+    return { resize: resize, step: step, draw: draw };
+  }
+
+  /* =====================================================================
+     Driver: sizing, hover speed-up, pause when hidden/offscreen,
+     one static frame for reduced-motion users.
+     ===================================================================== */
+  var worlds = [
+    { el: $('wPf'), api: makePixel($('cPf')),   visible: true, sp: 1, target: 1 },
+    { el: $('wPb'), api: makePinball($('cPb')), visible: true, sp: 1, target: 1 }
+  ];
+
+  function warm(w) { for (var i = 0; i < 240; i++) w.api.step(1 / 30); }
+
+  worlds.forEach(function (w) {
+    var content = w.el.querySelector('.content'), first = true;
+    function fit() {
+      var r = w.el.getBoundingClientRect();
+      if (r.width < 1) return;
+      w.api.resize(r.width, r.height, content.offsetTop);
+      if (RM) warm(w);
+      w.api.draw();
+    }
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(fit); ro.observe(w.el); ro.observe(content);
+    } else { fit(); window.addEventListener('resize', fit); }
+
+    function boost(on) { w.target = on ? 1.6 : 1; }
+    w.el.addEventListener('mouseenter', function () { boost(true); });
+    w.el.addEventListener('mouseleave', function () { boost(false); });
+    w.el.addEventListener('focus', function () { boost(true); });
+    w.el.addEventListener('blur',  function () { boost(false); });
+
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (e) { w.visible = e[0].isIntersecting; }).observe(w.el);
+    }
+  });
+
+  if (!RM) {
+    var last = 0;
+    (function frame(ts) {
+      requestAnimationFrame(frame);
+      if (document.hidden) { last = ts; return; }
+      var gap = ts - last;
+      if (gap < 15) return;                  // frame-rate cap (~60fps)
+      last = ts;
+      var dt = Math.min(gap, 50) / 1000;
+      worlds.forEach(function (w) {
+        if (!w.visible) return;
+        w.sp += (w.target - w.sp) * Math.min(1, dt * 6);
+        w.api.step(dt * w.sp);
+        w.api.draw();
+      });
+    })(0);
+  }
+})();
+</script>
 </body>
 </html>
