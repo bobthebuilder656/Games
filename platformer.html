@@ -23,6 +23,9 @@
   .card canvas { display:block; margin:0 auto 5px; }
   .card .nm { font-weight:bold; font-size:13.5px; }
   .card .ab { font-size:10.5px; color:#8fd; margin-top:2px; }
+  .card.locked { opacity:.42; cursor:not-allowed; }
+  .card.locked:hover { transform:none; border-color:#0f3460; }
+  .card.locked .ab { color:#667; }
   #levelPick { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:14px; }
   .lvl { background:#16213e; border:3px solid #0f3460; border-radius:10px; padding:9px 16px; cursor:pointer; font-weight:bold; font-size:13.5px; transition:.15s; }
   .lvl:hover { border-color:#e94560; transform:translateY(-3px); }
@@ -30,6 +33,7 @@
   .lvl.locked { opacity:.42; cursor:not-allowed; border-color:#2a2a3e; }
   .lvl.locked:hover { transform:none; border-color:#2a2a3e; }
   .lvl .lock { font-size:11px; color:#667; }
+  .lvlStars { font-size:11px; letter-spacing:1px; margin-top:2px; }
   #saveInfo { color:#8fd; font-size:12.5px; margin:2px 0 14px; min-height:18px; }
   #saveInfo b { color:#ffd700; }
   .lvl small { display:block; font-weight:normal; color:#89a; font-size:10.5px; margin-top:2px; }
@@ -112,7 +116,7 @@
     #bJ:active { background:#ff6b81; }
 
     /* button row lives at the bottom; hide desktop-only buttons */
-    #playArea > div:last-of-type { display:none; }
+    #btnRow { display:none; }
   }
 
   #backLink {
@@ -123,10 +127,83 @@
   }
   #backLink:hover { background:rgba(0,0,0,.8); }
   @media (hover:none) and (orientation:landscape) { #backLink { top:4px; left:4px; padding:4px 9px; font-size:11px; } }
+
+  #helpBtn {
+    position:fixed; top:10px; right:10px; z-index:200;
+    width:34px; height:34px; border-radius:50%;
+    background:rgba(0,0,0,.55); color:#fff; border:1px solid rgba(255,255,255,.25);
+    font-size:17px; font-weight:bold; cursor:pointer; font-family:inherit;
+  }
+  #helpBtn:hover { background:rgba(0,0,0,.8); }
+  @media (hover:none) and (orientation:landscape) { #helpBtn { top:4px; right:4px; width:28px; height:28px; font-size:14px; } }
+
+  #helpModal, #trophyModal {
+    position:fixed; inset:0; z-index:300; background:rgba(5,5,15,.82);
+    display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  #helpModal .box, #trophyModal .box {
+    background:#16213e; border:3px solid #0f3460; border-radius:14px;
+    max-width:480px; max-height:88vh; overflow-y:auto; padding:20px 22px;
+    text-align:left; color:#fff;
+  }
+  #helpModal h2, #trophyModal h2 { font-size:19px; margin-bottom:10px; color:#ffd700; }
+  #helpModal h3 { font-size:14px; margin:14px 0 6px; color:#8fd; }
+  #helpModal p, #helpModal li { font-size:12.5px; line-height:1.6; color:#cbd; }
+  #helpModal ul { padding-left:18px; }
+  #helpModal .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  #helpModal .legend span { background:#1f2b4d; border-radius:6px; padding:4px 8px; font-size:12px; white-space:nowrap; }
+  #helpCloseBtn, #trophyCloseBtn {
+    margin-top:16px; width:100%; padding:10px; border-radius:8px; border:none;
+    background:#e94560; color:#fff; font-weight:bold; font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  #trophyModal .box { max-width:520px; }
+  .trophyGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:6px; }
+  .trophyCard { background:#1f2b4d; border:2px solid #0f3460; border-radius:10px; padding:10px; display:flex; gap:10px; align-items:center; }
+  .trophyCard.locked { opacity:.4; }
+  .trophyCard .tIcon { font-size:26px; width:34px; text-align:center; flex-shrink:0; }
+  .trophyCard .tName { font-weight:bold; font-size:13px; }
+  .trophyCard .tDesc { font-size:11px; color:#9ab; margin-top:2px; }
 </style>
 </head>
 <body>
 <a id="backLink" href="index.html">← Menu</a>
+<button id="helpBtn" aria-label="How to play">?</button>
+
+<div id="helpModal" class="hidden">
+  <div class="box">
+    <h2>How to play</h2>
+    <h3>Controls</h3>
+    <p>Arrows or A/D to move · ↑ / W / Space to jump · jump again mid-air for a double jump · ↓ / S to duck.<br>Land on enemies to squash them.</p>
+    <h3>Ducking</h3>
+    <p>Hold ↓ / S while on the ground to crouch — it shrinks your hitbox so things flying overhead (like a flyer enemy dipping down, or a shooter's projectile) pass harmlessly above you.</p>
+    <h3>Goal</h3>
+    <p>Reach the flag before time runs out. Collect coins for points, clear levels to unlock new ones — and new characters.</p>
+    <h3>Stars</h3>
+    <p>Each level can earn up to 3 stars, kept as your best-ever result:</p>
+    <div class="legend">
+      <span>⭐ Reach the flag</span>
+      <span>⭐ Collect every coin</span>
+      <span>⭐ Finish without losing a life</span>
+    </div>
+    <p>Check the 🏆 Trophies button on the main menu for bigger goals across the whole game.</p>
+    <h3>Shooter enemies</h3>
+    <p>The stationary green turrets fire straight ahead at head-height and flash red right before shooting. If you stay on the ground, the shot flies harmlessly over you — you don't need to dodge at all. Jumping into it is what gets you hit, so only jump once it's passed.</p>
+    <h3>Characters</h3>
+    <p>Each hero has a real advantage somewhere in the game — a spot only they can reach. Bolt, Tank and Pip are available immediately; Rosie, Gizmo and Nova unlock as you clear early levels.</p>
+    <h3>Power-ups &amp; pickups</h3>
+    <div class="legend">
+      <span>🛡️ Shield — blocks one hit</span>
+      <span>💚 Life — +1 life</span>
+      <span>⚡ Speed boost</span>
+      <span>🍃 Super jump</span>
+      <span>🧲 Coin magnet</span>
+      <span>🔥 Fireball — defeat enemies on touch</span>
+    </div>
+    <h3>Secrets</h3>
+    <p>Every level hides something extra — a hard-to-reach ledge, a hidden path, or a spot only one character can use. If you bump into something odd, try again with a different hero.</p>
+    <button id="helpCloseBtn">Got it</button>
+  </div>
+</div>
 
 <div id="rotate">
   <div class="ico">📱</div>
@@ -135,7 +212,7 @@
 </div>
 
 <h1>PIXEL QUEST</h1>
-<div class="sub">4 levels · boss fight · shields · double jump</div>
+<div class="sub">7 levels · boss fight · shields · double jump</div>
 
 <div id="select">
   <div class="pickLabel">Choose your hero</div>
@@ -144,7 +221,16 @@
   <div id="levelPick"></div>
   <div id="saveInfo"></div>
   <button id="startBtn">Start game</button>
+  <button id="trophyBtn" class="alt">🏆 Trophies</button>
   <button id="wipeBtn" class="alt">🗑 Reset progress</button>
+</div>
+
+<div id="trophyModal" class="hidden">
+  <div class="box">
+    <h2>Trophy case</h2>
+    <div id="trophyGrid" class="trophyGrid"></div>
+    <button id="trophyCloseBtn">Close</button>
+  </div>
 </div>
 
 <div id="playArea" class="hidden" style="display:flex;flex-direction:column;align-items:center;">
@@ -153,7 +239,7 @@
     <div>🪙 <span id="coins">0</span>/<span id="totalCoins">0</span></div>
     <div>⭐ <span id="score">0</span></div>
     <div id="timerBox">⏱ <span id="timer">120</span></div>
-    <div>🏁 <span id="level">1</span>/4</div>
+    <div>🏁 <span id="level">1</span>/<span id="levelTotal">7</span></div>
   </div>
   <div id="stage">
     <canvas id="game" width="840" height="470"></canvas>
@@ -162,11 +248,13 @@
     <div class="tpad">
       <button class="tbtn" id="bL" aria-label="Move left">◀</button>
       <button class="tbtn" id="bR" aria-label="Move right">▶</button>
+      <button class="tbtn" id="bD" aria-label="Duck">▼</button>
     </div>
     <button class="tbtn" id="bJ" aria-label="Jump">JUMP ▲</button>
   </div>
   <div id="msg"></div>
-  <div>
+  <div id="btnRow">
+    <button id="fsBtn" class="alt">⛶ Fullscreen</button>
     <button id="musicBtn" class="alt">🎵 Music on</button>
     <button id="sfxBtn" class="alt">🔊 SFX on</button>
     <button id="restartBtn" class="alt">🔄 Restart</button>
@@ -174,8 +262,8 @@
     <button id="fpsBtn" class="alt">📊 FPS</button>
   </div>
   <div id="hint">
-    Arrows or A D to move &nbsp;·&nbsp; ↑ / W / Space to jump &nbsp;·&nbsp; jump again mid-air for a <b>double jump</b><br>
-    Tap jump for a small hop, hold for a big one &nbsp;·&nbsp; land on enemies to squash them<br>
+    Arrows or A D to move &nbsp;·&nbsp; ↑ / W / Space to jump &nbsp;·&nbsp; jump again mid-air for a <b>double jump</b> &nbsp;·&nbsp; ↓ / S to duck<br>
+    Land on enemies to squash them<br>
     🛡️ shield = 3.5 seconds of safety &nbsp;·&nbsp; 💚 extra life &nbsp;·&nbsp; +1 life for finishing a level
   </div>
 </div>
@@ -185,28 +273,65 @@
    CHARACTERS
    ============================================================ */
 const CHARACTERS = [
-  { id:'bolt',  name:'Bolt',  ability:'Balanced',      body:'#2e86de', accent:'#ffd32a', skin:'#ffdca8', hat:'#e94560', speed:5.0, jump:13.4 },
-  { id:'rosie', name:'Rosie', ability:'Higher jump',   body:'#ff6b9d', accent:'#ffffff', skin:'#ffe0c0', hat:'#c44569', speed:4.8, jump:14.4 },
-  { id:'gizmo', name:'Gizmo', ability:'Fast runner',   body:'#26de81', accent:'#0be881', skin:'#d1f7e0', hat:'#20bf6b', speed:5.9, jump:12.8 },
-  { id:'nova',  name:'Nova',  ability:'Floaty falls',  body:'#a55eea', accent:'#d6a2e8', skin:'#f3e0ff', hat:'#8854d0', speed:4.9, jump:13.2, floaty:true },
-  { id:'tank',  name:'Tank',  ability:'Extra life',    body:'#f0932b', accent:'#ffbe76', skin:'#ffe5c0', hat:'#cc7a1a', speed:4.6, jump:12.8, bonusLife:true },
-  { id:'pip',   name:'Pip',   ability:'Tiny + nimble', body:'#00d2d3', accent:'#7efff5', skin:'#e0ffff', hat:'#01a3a4', speed:5.5, jump:13.6, small:true },
+  { id:'bolt',  name:'Bolt',  ability:'Balanced',      body:'#2e86de', accent:'#ffd32a', skin:'#ffdca8', hat:'#e94560', speed:5.0, jump:13.4, shape:'bolt' },
+  { id:'tank',  name:'Tank',  ability:'Extra life',    body:'#f0932b', accent:'#ffbe76', skin:'#ffe5c0', hat:'#cc7a1a', speed:4.6, jump:12.8, bonusLife:true, shape:'tank' },
+  { id:'pip',   name:'Pip',   ability:'Tiny + nimble', body:'#00d2d3', accent:'#7efff5', skin:'#e0ffff', hat:'#01a3a4', speed:5.5, jump:13.6, small:true, shape:'pip' },
+  { id:'rosie', name:'Rosie', ability:'Higher jump',   body:'#ff6b9d', accent:'#ffffff', skin:'#ffe0c0', hat:'#c44569', speed:4.8, jump:14.4, highJump:true, shape:'rosie', unlocksAfterLevel:0 },
+  { id:'gizmo', name:'Gizmo', ability:'Fast runner',   body:'#26de81', accent:'#0be881', skin:'#d1f7e0', hat:'#20bf6b', speed:5.9, jump:12.8, fastRunner:true, accelBoost:1.35, shape:'gizmo', unlocksAfterLevel:1 },
+  { id:'nova',  name:'Nova',  ability:'Floaty falls',  body:'#a55eea', accent:'#d6a2e8', skin:'#f3e0ff', hat:'#8854d0', speed:4.9, jump:13.2, floaty:true, shape:'nova', unlocksAfterLevel:2 },
 ];
 let chosen = CHARACTERS[0];
+function charUnlocked(c){ return c.unlocksAfterLevel==null || save.cleared.includes(c.unlocksAfterLevel); }
 
 function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
 
 function drawHero(c, ch, x, y, w, h, facing, frame, shielded){
   const bob = Math.sin(frame/5)*1.2; y += bob;
   const swing = Math.sin(frame/4)*3;
+  const shape = ch.shape||'bolt';
+  const wide = shape==='tank' ? 3 : 0;         // Tank reads stockier/wider than everyone else
   c.fillStyle='#333';
-  c.fillRect(x+4, y+h-8, 7, 8+swing*0.25);
-  c.fillRect(x+w-11, y+h-8, 7, 8-swing*0.25);
-  c.fillStyle=ch.body; roundRect(c,x+2,y+12,w-4,h-20,5); c.fill();
-  c.fillStyle=ch.accent; roundRect(c,x+7,y+18,w-14,h-30,4); c.fill();
+  c.fillRect(x+4-wide/2, y+h-8, 7, 8+swing*0.25);
+  c.fillRect(x+w-11+wide/2, y+h-8, 7, 8-swing*0.25);
+  c.fillStyle=ch.body; roundRect(c,x+2-wide,y+12,w-4+wide*2,h-20,5); c.fill();
+  c.fillStyle=ch.accent; roundRect(c,x+7-wide,y+18,w-14+wide*2,h-30,4); c.fill();
+
+  // chest emblem — a second silhouette cue besides color, readable even small
+  c.save(); c.globalAlpha=0.85;
+  const cx=x+w/2, cy=y+h/2+2;
+  if(shape==='bolt'){ c.fillStyle=ch.hat; c.beginPath(); c.moveTo(cx+2,cy-7); c.lineTo(cx-4,cy+1); c.lineTo(cx,cy+1); c.lineTo(cx-2,cy+7); c.lineTo(cx+5,cy-2); c.lineTo(cx+1,cy-2); c.closePath(); c.fill(); }
+  else if(shape==='tank'){ c.strokeStyle=ch.hat; c.lineWidth=2; c.beginPath(); c.moveTo(cx-6,cy-5); c.lineTo(cx+6,cy-5); c.lineTo(cx+6,cy+3); c.lineTo(cx,cy+7); c.lineTo(cx-6,cy+3); c.closePath(); c.stroke(); }
+  else if(shape==='gizmo'){ c.strokeStyle=ch.hat; c.lineWidth=2; c.beginPath(); c.arc(cx,cy,6,0,Math.PI*2); c.moveTo(cx+6,cy); c.lineTo(cx+10,cy); c.moveTo(cx-6,cy); c.lineTo(cx-10,cy); c.moveTo(cx,cy-6); c.lineTo(cx,cy-10); c.stroke(); }
+  else if(shape==='nova'){ c.fillStyle=ch.hat; for(let i=0;i<5;i++){ const a=-Math.PI/2+i*(Math.PI*2/5); c.beginPath(); c.arc(cx+Math.cos(a)*6,cy+Math.sin(a)*6,1.6,0,Math.PI*2); c.fill(); } }
+  c.restore();
+
   c.fillStyle=ch.skin; c.beginPath(); c.arc(x+w/2,y+10,10,0,Math.PI*2); c.fill();
-  c.fillStyle=ch.hat; c.beginPath(); c.arc(x+w/2,y+8,10,Math.PI,0); c.fill();
-  c.fillRect(x+w/2-12+(facing>0?4:0), y+6, 14, 3);
+
+  // hat silhouette differs per character — the main "read at a glance" distinguisher
+  c.fillStyle=ch.hat;
+  if(shape==='rosie'){ // bow: two triangles meeting at the crown
+    c.beginPath(); c.moveTo(x+w/2,y+2); c.lineTo(x+w/2-11,y-4); c.lineTo(x+w/2-11,y+8); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(x+w/2,y+2); c.lineTo(x+w/2+11,y-4); c.lineTo(x+w/2+11,y+8); c.closePath(); c.fill();
+    c.beginPath(); c.arc(x+w/2,y+2,3,0,Math.PI*2); c.fill();
+  } else if(shape==='pip'){ // small pointed cap — nimble, no brim
+    c.beginPath(); c.moveTo(x+w/2,y-6); c.lineTo(x+w/2-8,y+7); c.lineTo(x+w/2+8,y+7); c.closePath(); c.fill();
+  } else if(shape==='gizmo'){ // flat cap + goggles strap across the eyes
+    roundRect(c,x+w/2-10,y+2,20,5,2); c.fill();
+    c.strokeStyle=ch.hat; c.lineWidth=3; c.beginPath(); c.moveTo(x+w/2-11,y+10); c.lineTo(x+w/2+11,y+10); c.stroke();
+  } else if(shape==='nova'){ // star crown
+    c.beginPath();
+    for(let i=0;i<5;i++){ const a=-Math.PI/2+i*(Math.PI*2/5), a2=a+Math.PI/5;
+      c.lineTo(x+w/2+Math.cos(a)*10, y+2+Math.sin(a)*10);
+      c.lineTo(x+w/2+Math.cos(a2)*4.2, y+2+Math.sin(a2)*4.2); }
+    c.closePath(); c.fill();
+  } else if(shape==='tank'){ // flat-top helmet, wide brim
+    roundRect(c,x+w/2-11,y-1,22,9,2); c.fill();
+    c.fillRect(x+w/2-13, y+7, 26, 3);
+  } else { // bolt: classic dome + brim
+    c.beginPath(); c.arc(x+w/2,y+8,10,Math.PI,0); c.fill();
+    c.fillRect(x+w/2-12+(facing>0?4:0), y+6, 14, 3);
+  }
+
   const ex = x+w/2+facing*2;
   c.fillStyle='#fff'; c.beginPath(); c.arc(ex-3,y+10,2.6,0,Math.PI*2); c.arc(ex+3,y+10,2.6,0,Math.PI*2); c.fill();
   c.fillStyle='#000'; c.beginPath(); c.arc(ex-3+facing,y+10,1.3,0,Math.PI*2); c.arc(ex+3+facing,y+10,1.3,0,Math.PI*2); c.fill();
@@ -266,15 +391,38 @@ const SFX = {
   tick:()=>tone(880,0.05,'square',0.08)
 };
 
+/* Each biome gets its own melody, tempo and instrument voice — not
+   just a recolored table, a different sound. The boss track stays
+   separate and always wins when a level is a boss fight. */
 const MELODIES = {
-  normal:{tempo:150,notes:[523,659,784,659,523,587,659,587,494,587,698,587,523,659,523,392,
-                           523,659,784,880,784,659,587,523,494,523,587,659,523,494,440,392]},
-  boss:  {tempo:190,notes:[262,262,311,262,233,233,262,233,196,196,233,196,175,196,233,262,
-                           262,311,349,311,262,233,196,175,196,233,262,311,349,311,262,196]}
+  grass: {tempo:150,type:'square',bassType:'triangle',
+    notes:[523,659,784,659,523,587,659,587,494,587,698,587,523,659,523,392,
+           523,659,784,880,784,659,587,523,494,523,587,659,523,494,440,392]},
+  dusk:  {tempo:135,type:'triangle',bassType:'sine',
+    notes:[392,440,494,440,349,392,440,392,330,349,392,349,294,330,349,440,
+           392,440,494,523,494,440,392,349,330,349,392,440,392,349,311,294]},
+  desert:{tempo:138,type:'triangle',bassType:'sine',
+    notes:[440,554,659,554,440,494,554,494,415,494,587,494,440,554,440,330,
+           440,554,659,740,659,554,494,440,415,440,494,554,440,415,370,330]},
+  cave:  {tempo:128,type:'sine',bassType:'triangle',
+    notes:[220,220,262,220,196,196,233,196,174,174,208,174,220,220,262,220,
+           196,196,233,196,174,174,208,174,220,262,311,262,220,196,174,164]},
+  ice:   {tempo:150,type:'square',bassType:'sine',
+    notes:[880,1109,1319,1109,880,988,1109,988,784,988,1175,988,880,1109,880,659,
+           880,1109,1319,1480,1319,1109,988,880,784,880,988,1109,880,784,698,659]},
+  forest:{tempo:118,type:'triangle',bassType:'sawtooth',
+    notes:[233,220,207,220,196,185,196,220,174,165,174,196,233,220,207,196,
+           233,246,261,246,220,207,196,185,174,185,196,220,233,220,207,196]},
+  sky:   {tempo:150,type:'square',bassType:'triangle',      // approach music before the boss gate
+    notes:[523,659,784,659,523,587,659,587,494,587,698,587,523,659,523,392,
+           523,659,784,880,784,659,587,523,494,523,587,659,523,494,440,392]},
+  boss:  {tempo:190,type:'square',bassType:'triangle',
+    notes:[262,262,311,262,233,233,262,233,196,196,233,196,175,196,233,262,
+           262,311,349,311,262,233,196,175,196,233,262,311,349,311,262,196]}
 };
-let musicTimer=null, musicStep=0, currentTrack='normal';
+let musicTimer=null, musicStep=0, currentTrack='grass';
 function startMusic(track){
-  stopMusic(); currentTrack=track||'normal'; musicStep=0;
+  stopMusic(); currentTrack=(track&&MELODIES[track])?track:'grass'; musicStep=0;
   if(!musicOn) return;
   const m=MELODIES[currentTrack];
   musicTimer=setInterval(()=>{
@@ -283,20 +431,20 @@ function startMusic(track){
     try{
       const a=ac();
       const o=a.createOscillator(),g=a.createGain();
-      o.type='square';o.frequency.value=n;
+      o.type=m.type;o.frequency.value=n;
       g.gain.setValueAtTime(0.045,a.currentTime);
       g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.22);
       o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+0.22);
       if(musicStep%2===0){
         const b=a.createOscillator(),bg=a.createGain();
-        b.type='triangle';b.frequency.value=n/4;
+        b.type=m.bassType;b.frequency.value=n/4;
         bg.gain.setValueAtTime(0.06,a.currentTime);
         bg.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.3);
         b.connect(bg);bg.connect(a.destination);b.start();b.stop(a.currentTime+0.3);
       }
     }catch(e){}
     musicStep++;
-  }, 60000/MELODIES[currentTrack].tempo/2);
+  }, 60000/m.tempo/2);
 }
 function stopMusic(){ if(musicTimer){clearInterval(musicTimer);musicTimer=null;} }
 
@@ -322,7 +470,8 @@ function makeLevels(){ return [
    ],
    movers:[{x:855,y:375,w:70,h:16,axis:'x',min:845,max:975,speed:1.7}],
    spikes:[],
-   powerups:[{x:355,y:295,type:'shield'},{x:1180,y:275,type:'life'}],
+   checkpoints:[{x:1045,y:333}],
+   powerups:[{x:355,y:295,type:'shield'},{x:1180,y:275,type:'life'},{x:700,y:390,type:'speed'},{x:1250,y:380,type:'magnet'}],
    // coin arcs trace each jump
    coins:[
      {x:250,y:375},{x:300,y:340},{x:355,y:300},              // arc up to first ledge
@@ -335,66 +484,202 @@ function makeLevels(){ return [
    enemies:[
      {x:640,y:383,range:[560,830],speed:1.6},               // first enemy: still the gentlest
      {x:1190,y:383,range:[1050,1310],speed:2.0},
-     {x:1640,y:383,range:[1430,1790],speed:2.3}
+     {x:1640,y:383,range:[1430,1790],speed:2.3},
+     {x:950,y:150,range:[880,1060],speed:1.8,type:'flyer'}   // first taste of an airborne enemy — flies clear above the double-jump arc so it doesn't ambush you mid-jump
    ],
    flag:{x:1750,y:335} },
 
  /* ---------- L2: EASED ---------- */
- { name:'Broken bridge', width:2000, theme:'grass', time:112,
+ { name:'Broken bridge', width:2000, theme:'dusk', time:112,
    platforms:[{x:0,y:415,w:450,h:55},{x:520,y:415,w:300,h:55},{x:870,y:415,w:320,h:55},
      {x:1250,y:415,w:280,h:55},{x:1600,y:415,w:400,h:55},
      {x:210,y:300,w:120,h:20},{x:580,y:320,w:120,h:20},{x:930,y:285,w:150,h:20},
-     {x:1290,y:315,w:130,h:20},{x:1650,y:280,w:150,h:20},{x:1840,y:340,w:120,h:20}],
+     {x:1290,y:315,w:130,h:20},{x:1650,y:280,w:150,h:20},{x:1750,y:230,w:150,h:20},
+     {x:1035,y:222,w:90,h:18},{x:1160,y:158,w:100,h:18},            // secret: climb above the bridge
+     {x:355,y:196,w:30,h:8}],                                      // secret: only Rosie's higher jump reaches this
+   hints:[{x:345,y:196,w:50,h:20,requires:'highJump',msg:"That's higher than it looks... someone with more spring in their step might make it."}],
    movers:[{x:445,y:365,w:90,h:16,axis:'x',min:430,max:530,speed:2.0},
            {x:1190,y:350,w:90,h:16,axis:'x',min:1180,max:1260,speed:2.0},
            {x:800,y:340,w:90,h:16,axis:'y',min:280,max:390,speed:1.8}],
-   spikes:[],
-   powerups:[{x:250,y:270,type:'shield'},{x:940,y:255,type:'life'}],
+   spikes:[{x:990,y:399,w:56,h:16}],
+   checkpoints:[{x:520,y:333},{x:1250,y:333}],
+   powerups:[{x:250,y:270,type:'shield'},{x:940,y:255,type:'life'},{x:365,y:170,type:'life',secret:'l2_rosie'},{x:820,y:390,type:'jump'},{x:1700,y:250,type:'fire'}],
    coins:[
      {x:170,y:340},{x:210,y:305},{x:270,y:270},
      {x:450,y:375},{x:485,y:350},{x:520,y:375},
      {x:640,y:285},{x:830,y:375},{x:880,y:345},{x:1000,y:245},
-     {x:1200,y:315},{x:1350,y:275},{x:1560,y:370},{x:1720,y:240},{x:1890,y:300}
+     {x:1200,y:315},{x:1350,y:275},{x:1560,y:370},{x:1720,y:240},{x:1820,y:195},
+     {x:1050,y:190},{x:1085,y:190},{x:1180,y:125},{x:1215,y:125,secret:'l2_staircase'},  // secret coin stash above
+     {x:345,y:170},{x:395,y:170}                                    // Rosie-only ledge reward
    ],
    enemies:[{x:600,y:383,range:[540,800],speed:2.1},{x:950,y:383,range:[890,1180],speed:2.2},
-            {x:1350,y:383,range:[1260,1520],speed:2.2},{x:1750,y:383,range:[1610,1970],speed:2.5}],
+            {x:1350,y:383,range:[1260,1520],speed:2.2},{x:1680,y:383,range:[1610,1780],speed:2.5},
+            {x:800,y:230,range:[750,900],speed:2.0,type:'flyer'},
+            {x:1850,y:383,range:[1850,1850],speed:0,type:'shooter',fireTimer0:100}],
    flag:{x:1940,y:335} },
 
- /* ---------- L3: TONED DOWN ---------- */
+ /* ---------- L3: DESERT — sand slows you, cacti are static hazards,
+    a crumbling stone bridges the widest gap ---------- */
+ { name:'Desert ruins', width:2000, theme:'desert', time:125,
+   platforms:[
+     {x:0,y:415,w:420,h:55},
+     {x:420,y:415,w:260,h:55,slow:true},
+     {x:760,y:415,w:220,h:55},
+     {x:1080,y:415,w:260,h:55,slow:true},
+     {x:1440,y:415,w:560,h:55},
+     {x:230,y:320,w:110,h:20},{x:600,y:300,w:100,h:20},
+     {x:1250,y:290,w:120,h:20},{x:1650,y:320,w:120,h:20},
+     // secret: a tight rock squeeze only a small hero fits through
+     {x:350,y:280,w:50,h:20},
+     {x:400,y:280,w:180,h:20,tight:true,tightEdge:'top'},
+     {x:400,y:224,w:180,h:20,tight:true,tightEdge:'bottom'},
+     {x:580,y:280,w:60,h:20}
+   ],
+   movers:[{x:1550,y:360,w:80,h:16,axis:'y',min:290,max:395,speed:2.0}],
+   crumbles:[{x:990,y:370,w:70,h:16}],
+   spikes:[{x:500,y:399,w:40,h:16},{x:1200,y:399,w:56,h:16}],
+   checkpoints:[{x:760,y:333},{x:1440,y:333}],
+   hints:[{x:397,y:224,w:16,h:76,requires:'small',msg:"Too tight to squeeze through... a smaller hero might make it."}],
+   powerups:[{x:600,y:255,type:'shield'},{x:1300,y:245,type:'life'},{x:610,y:250,type:'life',secret:'l3_tunnel'},{x:900,y:390,type:'speed'},{x:1550,y:390,type:'jump'}],
+   coins:[
+     {x:150,y:375},{x:230,y:290},{x:310,y:375},
+     {x:560,y:395},{x:620,y:270},{x:700,y:395},
+     {x:820,y:375},{x:900,y:340},{x:1000,y:335},
+     {x:1150,y:395},{x:1250,y:260},{x:1330,y:395},
+     {x:1500,y:375},{x:1650,y:290},{x:1800,y:375},{x:1900,y:300},
+     {x:320,y:260},{x:430,y:260},{x:480,y:260},{x:530,y:260}     // secret tunnel coin trail
+   ],
+   enemies:[
+     {x:600,y:383,range:[420,680],speed:1.8},
+     {x:850,y:383,range:[760,980],speed:2.3},
+     {x:1600,y:383,range:[1440,1900],speed:2.6},
+     {x:700,y:220,range:[600,900],speed:2.0,type:'flyer'},
+     {x:1750,y:383,range:[1750,1750],speed:0,type:'shooter',fireTimer0:95}
+   ],
+   flag:{x:1930,y:335} },
+
+ /* ---------- L4: CRYSTAL CAVES — icy patches and a telegraphed
+    icicle drip layered onto the original cave layout ---------- */
  { name:'Crystal caves', width:2200, theme:'cave', time:118,
    platforms:[{x:0,y:415,w:340,h:55},{x:430,y:415,w:180,h:55},{x:710,y:415,w:180,h:55},
-     {x:990,y:415,w:180,h:55},{x:1270,y:415,w:180,h:55},{x:1550,y:415,w:180,h:55},{x:1830,y:415,w:370,h:55},
+     {x:990,y:415,w:180,h:55,ice:true},{x:1270,y:415,w:180,h:55},{x:1550,y:415,w:180,h:55,ice:true},{x:1830,y:415,w:370,h:55},
      {x:160,y:320,w:110,h:20},{x:450,y:335,w:100,h:20},{x:730,y:290,w:100,h:20},
      {x:1010,y:335,w:100,h:20},{x:1290,y:275,w:100,h:20},{x:1570,y:320,w:100,h:20},
-     {x:1900,y:300,w:120,h:20},{x:2080,y:245,w:120,h:20}],
+     {x:1900,y:300,w:120,h:20},{x:2080,y:245,w:120,h:20},
+     {x:1750,y:150,w:80,h:20},                                     // secret treasure ledge, past the crumbling stones
+     {x:40,y:320,w:280,h:18},{x:508,y:320,w:50,h:18}],              // secret: only Gizmo's top speed clears this gap
+   hints:[{x:460,y:270,w:60,h:60,requires:'fastRunner',msg:"That gap needs some real speed to clear... a faster runner could make it."}],
    movers:[{x:620,y:365,w:85,h:16,axis:'x',min:610,max:715,speed:2.4},
            {x:900,y:340,w:85,h:16,axis:'y',min:275,max:395,speed:2.2},
            {x:1180,y:365,w:85,h:16,axis:'x',min:1170,max:1275,speed:2.4},
            {x:1450,y:365,w:85,h:16,axis:'x',min:1440,max:1555,speed:2.6},
            {x:1760,y:340,w:85,h:16,axis:'y',min:275,max:395,speed:2.2}],
-   spikes:[],
-   powerups:[{x:200,y:290,type:'shield'},{x:1330,y:245,type:'life'},{x:1950,y:270,type:'shield'}],
+   spikes:[{x:790,y:399,w:56,h:16},{x:1630,y:399,w:56,h:16,pulse:{on:60,off:100},phase:20}],
+   checkpoints:[{x:990,y:333},{x:1830,y:333}],
+   powerups:[{x:1330,y:245,type:'life'},{x:1785,y:110,type:'shield',secret:'l4_chain'},{x:528,y:280,type:'life',secret:'l4_gizmo'},{x:850,y:390,type:'magnet'},{x:1900,y:330,type:'fire'}],
+   crumbles:[{x:1420,y:190,w:60,h:16},{x:1530,y:190,w:60,h:16},{x:1640,y:190,w:60,h:16}], // secret: a gem stash across three crumbling stones
    coins:[
      {x:120,y:360},{x:160,y:330},{x:210,y:290},
      {x:390,y:370},{x:430,y:345},{x:490,y:300},
      {x:660,y:370},{x:710,y:340},{x:770,y:255},
      {x:950,y:370},{x:1000,y:340},{x:1060,y:300},
      {x:1240,y:370},{x:1340,y:240},{x:1600,y:285},
-     {x:1800,y:370},{x:1950,y:265},{x:2120,y:205},{x:2170,y:205}
+     {x:1800,y:370},{x:1950,y:265},{x:2120,y:205},{x:2170,y:205},
+     {x:1350,y:240},{x:1440,y:150},{x:1550,y:150},{x:1660,y:150},{x:1770,y:110},{x:1800,y:110},
+     {x:100,y:280},{x:180,y:280},{x:260,y:280},{x:513,y:290},{x:545,y:290}   // Gizmo-speed gap: runway trail + reward
    ],
-   enemies:[{x:450,y:383,range:[430,605],speed:2.7},{x:1010,y:383,range:[990,1165],speed:2.9},
-            {x:1290,y:383,range:[1270,1445],speed:2.9},{x:1570,y:383,range:[1550,1725],speed:3.0},
-            {x:1930,y:383,range:[1830,2185],speed:3.0},
-            {x:1320,y:248,range:[1290,1385],speed:2.1}],
+   enemies:[{x:450,y:383,range:[430,605],speed:2.3},{x:1010,y:383,range:[990,1165],speed:2.5},
+            {x:1290,y:383,range:[1270,1445],speed:2.5},{x:1570,y:383,range:[1550,1725],speed:2.6},
+            {x:1930,y:383,range:[1830,2185],speed:2.6},
+            {x:1320,y:248,range:[1290,1385],speed:1.9},
+            {x:600,y:210,range:[520,740],speed:2.1,type:'flyer'},
+            {x:2050,y:383,range:[2050,2050],speed:0,type:'shooter',fireTimer0:80}],
    flag:{x:2160,y:335} },
 
- /* ---------- L4: APPROACH + BOSS ARENA ---------- */
+ /* ---------- L5: FROZEN PEAKS — almost every platform is ice, so
+    the challenge is momentum and commitment, not speed ---------- */
+ { name:'Frozen peaks', width:2100, theme:'ice', time:135,
+   platforms:[
+     {x:0,y:415,w:380,h:55},
+     {x:380,y:415,w:240,h:55,ice:true},
+     {x:700,y:415,w:200,h:55,ice:true},
+     {x:1000,y:415,w:240,h:55,ice:true},
+     {x:1340,y:415,w:220,h:55,ice:true},
+     {x:1660,y:415,w:440,h:55},
+     {x:200,y:310,w:110,h:20},{x:560,y:290,w:100,h:20},
+     {x:950,y:260,w:100,h:20},{x:1450,y:300,w:110,h:20},{x:1850,y:260,w:130,h:20},
+     {x:1130,y:372,w:80,h:18}                      // secret: only reachable with a full-speed running jump
+   ],
+   movers:[{x:900,y:340,w:85,h:16,axis:'y',min:270,max:395,speed:2.0}],
+   crumbles:[{x:1260,y:370,w:70,h:16}],
+   spikes:[{x:520,y:399,w:50,h:16,pulse:{on:70,off:110},phase:0},
+           {x:1150,y:399,w:50,h:16,pulse:{on:70,off:110},phase:55},
+           {x:1780,y:399,w:50,h:16,pulse:{on:70,off:110},phase:30}],
+   checkpoints:[{x:700,y:333},{x:1660,y:333}],
+   powerups:[{x:560,y:245,type:'shield'},{x:1450,y:255,type:'life'},{x:1160,y:340,type:'shield',secret:'l5_ledge'},{x:780,y:390,type:'speed'},{x:1900,y:390,type:'jump'}],
+   coins:[
+     {x:150,y:375},{x:200,y:265},{x:280,y:375},
+     {x:480,y:395},{x:560,y:245},{x:640,y:395},
+     {x:800,y:395},{x:950,y:220},{x:1100,y:395},
+     {x:1220,y:340},{x:1300,y:395},{x:1450,y:255},
+     {x:1600,y:395},{x:1780,y:395},{x:1850,y:220},{x:2000,y:375},
+     {x:1085,y:395},{x:1105,y:300},{x:1140,y:270},{x:1175,y:300},{x:1150,y:345},{x:1195,y:345}   // secret ledge trail
+   ],
+   enemies:[
+     {x:450,y:383,range:[380,620],speed:1.8},
+     {x:1100,y:383,range:[1000,1240],speed:2.0},
+     {x:1900,y:383,range:[1660,2080],speed:2.4},
+     {x:750,y:210,range:[650,950],speed:2.2,type:'flyer'},
+     {x:1500,y:383,range:[1500,1500],speed:0,type:'shooter',fireTimer0:90}
+   ],
+   flag:{x:2040,y:335} },
+
+ /* ---------- L6: HAUNTED FOREST — a lit radius follows you, ghosts
+    drift through the dark instead of patrolling in the open ---------- */
+ { name:'Haunted forest', width:2000, theme:'forest', time:140, fog:true,
+   platforms:[
+     {x:0,y:415,w:400,h:55},
+     {x:400,y:415,w:260,h:55},
+     {x:760,y:415,w:220,h:55},
+     {x:1080,y:415,w:260,h:55},
+     {x:1440,y:415,w:560,h:55},
+     {x:200,y:310,w:110,h:20},{x:550,y:290,w:100,h:20},
+     {x:900,y:270,w:100,h:20},{x:1250,y:300,w:120,h:20},{x:1650,y:270,w:130,h:20},
+     {x:980,y:227,w:80,h:18},                       // secret: a climb the fog hides until you're already on it
+     {x:1390,y:265,w:70,h:16,floatyOnly:true}],      // secret: a wisp of drifting mist - too thin to hold anyone but a floaty landing
+   hints:[{x:1390,y:265,w:70,h:16,requires:'floaty',msg:"That looks like solid ground, but it's just mist... only a gentle, floaty landing would hold."}],
+   movers:[{x:930,y:340,w:85,h:16,axis:'x',min:900,max:1020,speed:2.0}],
+   crumbles:[{x:1000,y:370,w:70,h:16}],
+   spikes:[{x:550,y:399,w:50,h:16},{x:1550,y:399,w:50,h:16}],
+   checkpoints:[{x:760,y:333},{x:1440,y:333}],
+   powerups:[{x:550,y:245,type:'shield'},{x:1250,y:255,type:'life'},{x:1080,y:90,type:'shield',secret:'l6_climb'},{x:1420,y:225,type:'life',secret:'l6_nova'},{x:820,y:390,type:'magnet'},{x:1750,y:390,type:'fire'}],
+   coins:[
+     {x:150,y:375},{x:200,y:265},{x:300,y:375},
+     {x:480,y:395},{x:550,y:245},{x:650,y:395},
+     {x:820,y:395},{x:900,y:225},{x:1000,y:335},
+     {x:1150,y:395},{x:1250,y:255},{x:1350,y:395},
+     {x:1500,y:375},{x:1650,y:225},{x:1800,y:375},{x:1900,y:300},
+     {x:975,y:160},{x:1020,y:160},{x:1075,y:100},{x:1110,y:100},  // secret staircase trail
+     {x:1405,y:230},{x:1430,y:230},{x:1450,y:230}                  // secret mist-ledge trail
+   ],
+   enemies:[
+     {x:500,y:383,range:[400,660],speed:2.4},
+     {x:1150,y:383,range:[1080,1340],speed:2.6},
+     {x:1750,y:383,range:[1440,2000],speed:2.8},
+     {x:700,y:230,range:[550,900],speed:2.2,type:'ghost'},
+     {x:1400,y:220,range:[1250,1600],speed:2.4,type:'ghost'},
+     {x:1900,y:383,range:[1900,1900],speed:0,type:'shooter',fireTimer0:90}
+   ],
+   flag:{x:1930,y:335} },
+
+ /* ---------- L7: APPROACH + BOSS ARENA ---------- */
  { name:'The Goober King', width:1900, theme:'sky', time:150, isBoss:true,
    platforms:[
      // calm approach stretch — breathe, collect, top up
      {x:0,y:415,w:520,h:55},
      {x:170,y:325,w:130,h:20},
      {x:380,y:280,w:130,h:20},
+     {x:520,y:215,w:70,h:18},                      // secret: a last stash tucked just before the gate
      // gate into the arena
      {x:600,y:415,w:1300,h:55},
      {x:730,y:320,w:140,h:18},{x:1010,y:265,w:140,h:18},{x:1310,y:265,w:140,h:18},{x:1600,y:320,w:140,h:18}
@@ -402,17 +687,21 @@ function makeLevels(){ return [
    movers:[{x:1150,y:350,w:90,h:16,axis:'y',min:290,max:398,speed:2.4},
            {x:540,y:370,w:80,h:16,axis:'x',min:525,max:610,speed:2.2},
            {x:880,y:330,w:85,h:16,axis:'x',min:870,max:1000,speed:2.3}],
-   spikes:[],
-   powerups:[{x:235,y:295,type:'shield'},{x:445,y:250,type:'life'},{x:1650,y:290,type:'shield'}],
+   spikes:[{x:1050,y:399,w:56,h:16}],
+   checkpoints:[{x:600,y:333}],           // right at the arena gate — boss retries skip the approach
+   powerups:[{x:235,y:295,type:'shield'},{x:445,y:250,type:'life'},{x:1650,y:290,type:'shield'},{x:545,y:175,type:'life',secret:'l7_stash'},{x:130,y:390,type:'speed'},{x:1150,y:225,type:'fire'}],
    coins:[
      {x:110,y:370},{x:170,y:335},{x:235,y:295},
      {x:320,y:300},{x:380,y:275},{x:445,y:250},
      {x:540,y:375},{x:600,y:375},
-     {x:800,y:290},{x:1080,y:235},{x:1380,y:235},{x:1670,y:290}
+     {x:800,y:290},{x:1080,y:235},{x:1380,y:235},{x:1670,y:290},
+     {x:500,y:240},{x:525,y:180},{x:560,y:180}   // secret pre-gate stash trail
    ],
    enemies:[{x:300,y:383,range:[240,470],speed:2.2},
             {x:1050,y:243,range:[1015,1130],speed:2.3},
-            {x:1640,y:298,range:[1610,1725],speed:2.4}],
+            {x:1640,y:298,range:[1610,1725],speed:2.4},
+            {x:280,y:200,range:[220,440],speed:2.0,type:'flyer'},
+            {x:900,y:383,range:[900,900],speed:0,type:'shooter',fireTimer0:110}],
    boss:{x:1400,y:340,w:90,h:75,hp:7,maxHp:7,vx:-2.8,vy:0,jumpTimer:100,hitFlash:0,alive:true,minX:640},
    noFlag:true, flag:{x:1010,y:335} }
 ];}
@@ -423,16 +712,19 @@ function makeLevels(){ return [
    in-memory object so the game still runs anywhere.
    ============================================================ */
 const SAVE_KEY='pixelquest.save.v1';
-const DEFAULT_SAVE={ unlocked:1, best:0, cleared:[], hero:'bolt' };
+function freshSave(){
+  return { unlocked:1, best:0, cleared:[], hero:'bolt',
+    stars:{}, coinLevels:[], secretsFound:[], trophies:[], bossNoHit:false, speedDemon:false };
+}
 let memoryFallback=null;
-let save={...DEFAULT_SAVE};
+let save=freshSave();
 
 function loadSave(){
   try{
     const raw=localStorage.getItem(SAVE_KEY);
-    if(raw) save={...DEFAULT_SAVE, ...JSON.parse(raw)};
+    if(raw) save={...freshSave(), ...JSON.parse(raw)};
   }catch(e){
-    if(memoryFallback) save={...DEFAULT_SAVE, ...memoryFallback};
+    if(memoryFallback) save={...freshSave(), ...memoryFallback};
   }
 }
 function writeSave(){
@@ -441,7 +733,7 @@ function writeSave(){
 }
 function unlockLevel(i){                 // i is 0-based index of the level just cleared
   if(!save.cleared.includes(i)) save.cleared.push(i);
-  save.unlocked = Math.max(save.unlocked, Math.min(i+2, 4));
+  save.unlocked = Math.max(save.unlocked, Math.min(i+2, levels.length));
   writeSave();
 }
 function recordScore(sc){
@@ -449,9 +741,47 @@ function recordScore(sc){
   return false;
 }
 function wipeSave(){
-  save={...DEFAULT_SAVE, cleared:[]};
+  save=freshSave();
   memoryFallback=null;
   try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+}
+
+const TROPHIES = [
+  { id:'first', icon:'🏁', name:'First Steps', desc:'Clear your first level',
+    check: () => save.cleared.length>=1 },
+  { id:'quest', icon:'🏆', name:'Quest Complete', desc:'Beat the final boss',
+    check: () => save.cleared.includes(levels.length-1) },
+  { id:'roster', icon:'🎭', name:'Full Roster', desc:'Unlock all 6 characters',
+    check: () => CHARACTERS.every(charUnlocked) },
+  { id:'perfect', icon:'⭐', name:'Perfectionist', desc:'3 stars on every level',
+    check: () => levels.every((lv,i)=>(save.stars[i]||0)===3) },
+  { id:'untouchable', icon:'🛡️', name:'Untouchable', desc:'Beat the boss without taking a hit',
+    check: () => !!save.bossNoHit },
+  { id:'hoarder', icon:'🪙', name:'Coin Hoarder', desc:'Collect every coin in every level',
+    check: () => save.coinLevels.length>=levels.length },
+  { id:'secrets', icon:'🔍', name:'Secret Hunter', desc:"Discover 4 of the game's secrets",
+    check: () => save.secretsFound.length>=4 },
+  { id:'speed', icon:'💨', name:'Speed Demon', desc:'Finish a level with 40%+ time left',
+    check: () => !!save.speedDemon },
+];
+function markSecretFound(id){
+  if(!save.secretsFound.includes(id)){
+    save.secretsFound.push(id);
+    writeSave();
+    const t=checkTrophies();
+    if(t.length){ el('msg').textContent='🏆 '+t[0].name+' unlocked!'; setTimeout(()=>{ if(!gameOver&&!win&&!levelComplete) el('msg').textContent=''; },1600); }
+  }
+}
+function checkTrophies(){
+  const newlyUnlocked=[];
+  for(const t of TROPHIES){
+    if(!save.trophies.includes(t.id) && t.check()){
+      save.trophies.push(t.id);
+      newlyUnlocked.push(t);
+    }
+  }
+  if(newlyUnlocked.length) writeSave();
+  return newlyUnlocked;
 }
 loadSave();
 
@@ -462,31 +792,49 @@ const canvas=document.getElementById('game'), ctx=canvas.getContext('2d');
 const W=canvas.width, H=canvas.height;
 const GRAVITY=0.78, FRICTION=0.78, ACCEL=1.5;
 const SHIELD_FRAMES = 210;   // 3.5 seconds at 60fps
+const BOOST_FRAMES = 360;    // 6 seconds - speed/jump/fire power-ups
+const MAGNET_FRAMES = 480;   // 8 seconds
 
 const el=id=>document.getElementById(id);
 let levels=makeLevels(), levelIndex=0, level=levels[0];
 let camX=0, score=0, frame=0, timeLeft=0, timerId=null;
 let gameOver=false, win=false, levelComplete=false, running=false;
+let projectiles=[];
 const keys={};
 
 const player = { x:50,y:300,w:30,h:40,vx:0,vy:0,onGround:false,facing:1,
-                 jumps:0,inv:0,shield:0,lives:3,standingOn:null,jumpHeld:false };
+                 jumps:0,inv:0,shield:0,lives:3,standingOn:null,jumpHeld:false,
+                 speedT:0,jumpT:0,magnetT:0,fireT:0,ducking:false,tookDamage:false,
+                 checkpoint:{x:50,y:300} };
 
 function applyCharacter(){
   player.w = chosen.small?24:30;
   player.h = chosen.small?32:40;
   player.lives = 3 + (chosen.bonusLife?1:0);
 }
-function resetPlayer(){ player.x=50; player.y=300; player.vx=0; player.vy=0; player.jumps=0; player.inv=80; player.shield=0; player.standingOn=null; }
+/* Dying respawns you at the last checkpoint you touched, not the level
+   start — coins/powerups already collected and enemies already beaten
+   stay that way (loadLevel is the only place that resets them). */
+function resetPlayer(fromCheckpoint){
+  const p = fromCheckpoint ? player.checkpoint : {x:50,y:300};
+  player.x=p.x; player.y=p.y; player.vx=0; player.vy=0; player.jumps=0; player.inv=80; player.shield=0; player.standingOn=null;
+  player.speedT=0; player.jumpT=0; player.magnetT=0; player.fireT=0;
+}
 
 function loadLevel(i){
   levelIndex=i; level=levels[i];
   level.coins.forEach(c=>c.collected=false);
   level.powerups.forEach(u=>u.taken=false);
-  level.enemies.forEach(e=>{e.dir=1;e.alive=true;});
+  level.enemies.forEach(e=>{e.dir=1;e.alive=true;e.fireTimer=e.fireTimer0||90;});
   level.movers.forEach(m=>{m.dir=1;});
+  (level.crumbles||[]).forEach(c=>{c.state='idle'; c.timer=0; c.regrow=0;});
+  (level.hints||[]).forEach(h=>{h.shown=false;});
+  (level.checkpoints||[]).forEach(cp=>cp.reached=false);
+  projectiles=[];
+  player.checkpoint={x:50,y:300};
+  player.tookDamage=false;
   if (level.boss) Object.assign(level.boss,{x:1400,y:340,vx:-2.8,vy:0,hp:7,maxHp:7,hitFlash:0,alive:true,jumpTimer:100});
-  resetPlayer(); camX=0; levelComplete=false;
+  resetPlayer(false); camX=0; levelComplete=false;
   el('totalCoins').textContent=level.coins.length;
   el('level').textContent=i+1;
   updateHud();
@@ -494,7 +842,7 @@ function loadLevel(i){
   setTimeout(()=>{ if(!gameOver&&!win&&el('msg').textContent===level.name) el('msg').textContent=''; },1800);
   lastTime=0; accumulator=0; fitCanvas();
   startTimer(level.time);
-  startMusic(level.isBoss?'boss':'normal');
+  startMusic(level.isBoss?'boss':level.theme);
 }
 
 function startTimer(secs){
@@ -511,7 +859,7 @@ function startTimer(secs){
 function timeUp(){
   player.lives--; SFX.hurt(); updateHud();
   if(player.lives<=0) endGame();
-  else { el('msg').textContent='⏰ Out of time!'; resetPlayer(); startTimer(level.time); }
+  else { el('msg').textContent='⏰ Out of time!'; resetPlayer(true); startTimer(level.time); }
 }
 function updateHud(){
   el('coins').textContent=level.coins.filter(c=>c.collected).length;
@@ -519,9 +867,15 @@ function updateHud(){
   el('lives').textContent=Math.max(0,player.lives);
 }
 function overlap(a,b){ return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y; }
-function pbox(){ return {x:player.x,y:player.y,w:player.w,h:player.h}; }
+function pbox(){
+  if(player.ducking){
+    const dh=player.h*0.55;
+    return {x:player.x,y:player.y+(player.h-dh),w:player.w,h:dh};
+  }
+  return {x:player.x,y:player.y,w:player.w,h:player.h};
+}
 function down(list){ return list.some(k=>keys[k]); }
-const LEFT=['ArrowLeft','a','A'], RIGHT=['ArrowRight','d','D'], JUMP=['ArrowUp','w','W',' '];
+const LEFT=['ArrowLeft','a','A'], RIGHT=['ArrowRight','d','D'], JUMP=['ArrowUp','w','W',' '], DOWN=['ArrowDown','s','S'];
 
 function update(){
   if(!running||gameOver||win) return;
@@ -534,18 +888,31 @@ function update(){
     if(player.standingOn===m){ player.x+=m.x-bx; player.y+=m.y-by; }
   }
 
-  const solids=level.platforms.concat(level.movers);
+  for(const c of level.crumbles||[]){
+    if(c.state==='shaking'){ c.timer--; if(c.timer<=0){ c.state='gone'; c.regrow=110; burst(c.x+c.w/2,c.y,'#a4402c'); } }
+    else if(c.state==='gone'){ c.regrow--; if(c.regrow<=0) c.state='idle'; }
+  }
+  const solids=level.platforms.filter(p=>!p.floatyOnly || chosen.floaty).concat(level.movers).concat((level.crumbles||[]).filter(c=>c.state!=='gone'));
 
-  if(down(LEFT)){ player.vx-=ACCEL; player.facing=-1; }
-  if(down(RIGHT)){ player.vx+=ACCEL; player.facing=1; }
-  player.vx*=FRICTION;
-  player.vx=Math.max(-chosen.speed,Math.min(chosen.speed,player.vx));
-  if(Math.abs(player.vx)<0.15) player.vx=0;
+  // sand slows you down, ice barely lets you stop — both read off whatever you're standing on
+  const onSand = player.standingOn && player.standingOn.slow;
+  const onIce  = player.standingOn && player.standingOn.ice;
+  const accelMul = (onSand?0.55:1) * (chosen.accelBoost||1) * (player.speedT>0?1.3:1);
+  const speedMul = (onSand?0.62:1) * (player.speedT>0?1.35:1);
+  const surfFriction = onIce?0.96:FRICTION;
+  const jumpMul = player.jumpT>0?1.22:1;
+  player.ducking = player.onGround && down(DOWN);
+
+  if(down(LEFT)){ player.vx-=ACCEL*accelMul; player.facing=-1; }
+  if(down(RIGHT)){ player.vx+=ACCEL*accelMul; player.facing=1; }
+  player.vx*=surfFriction;
+  player.vx=Math.max(-chosen.speed*speedMul,Math.min(chosen.speed*speedMul,player.vx));
+  if(Math.abs(player.vx)<0.15 && !onIce) player.vx=0;
 
   const jk=down(JUMP);
   if(jk&&!player.jumpHeld){
-    if(player.onGround){ player.vy=-chosen.jump; player.jumps=1; player.onGround=false; SFX.jump(); }
-    else if(player.jumps===1){ player.vy=-chosen.jump*0.86; player.jumps=2; SFX.dbl(); puff(); }
+    if(player.onGround){ player.vy=-chosen.jump*jumpMul; player.jumps=1; player.onGround=false; SFX.jump(); }
+    else if(player.jumps===1){ player.vy=-chosen.jump*jumpMul*0.86; player.jumps=2; SFX.dbl(); puff(); }
   }
   if(!jk && player.vy<-4) player.vy*=0.86;
   player.jumpHeld=jk;
@@ -563,8 +930,11 @@ function update(){
   player.y+=player.vy;
   player.onGround=false; player.standingOn=null;
   for(const s of solids) if(overlap(pbox(),s)){
-    if(player.vy>0){ player.y=s.y-player.h; player.vy=0; player.onGround=true; player.jumps=0; player.standingOn=s; }
-    else if(player.vy<0){ player.y=s.y+s.h; player.vy=0; }
+    if(player.vy>0){
+      player.y=s.y-player.h; player.vy=0; player.onGround=true; player.jumps=0; player.standingOn=s;
+      if(s.state==='idle'){ s.state='shaking'; s.timer=24; }   // crumbling platform: starts shaking underfoot
+    }
+    else if(player.vy<0){ player.y=s.y+s.h; player.vy=1.5; }   // bonking a ceiling starts you falling immediately instead of freezing mid-air
   }
 
   if(player.x<0) player.x=0;
@@ -576,22 +946,62 @@ function update(){
     if(player.shield===0) SFX.shieldOff();
   }
   if(player.inv>0) player.inv--;
+  if(player.speedT>0) player.speedT--;
+  if(player.jumpT>0) player.jumpT--;
+  if(player.magnetT>0) player.magnetT--;
+  if(player.fireT>0) player.fireT--;
+  if(player.speedT>0 && frame%4===0) puff();
+
+  for(const cp of (level.checkpoints||[])){
+    if(cp.reached) continue;
+    if(overlap(pbox(),{x:cp.x-14,y:cp.y,w:28,h:82})){
+      cp.reached=true; player.checkpoint={x:cp.x,y:cp.y+40};
+      SFX.shield(); el('msg').textContent='🚩 Checkpoint!'; burst(cp.x,cp.y+40,'#2ed573');
+      setTimeout(()=>{ if(!gameOver&&!win&&!levelComplete) el('msg').textContent=''; },1200);
+    }
+  }
+
+  // a character-gated secret shows a one-time hint (never the answer) when
+  // someone who doesn't have the right ability bumps into its entrance
+  for(const h of (level.hints||[])){
+    if(h.shown) continue;
+    const qualifies = h.requires ? !!chosen[h.requires] : false;
+    if(!qualifies && overlap(pbox(),h)){
+      h.shown=true; el('msg').textContent=h.msg;
+      setTimeout(()=>{ if(!gameOver&&!win&&!levelComplete) el('msg').textContent=''; },2600);
+    }
+  }
+
+  // once you've touched the flag you're safe — no hazard should be able to kill you
+  // during the ~1.9s victory pause before the level actually advances
+  if(!levelComplete) for(const s of (level.spikes||[])){
+    // a pulsing spike (icicle drip, etc) is only dangerous during its "on" phase — telegraphed by the render
+    const active = !s.pulse || ((frame+(s.phase||0))%(s.pulse.on+s.pulse.off)) < s.pulse.on;
+    if(active && overlap(pbox(),s) && player.inv<=0) hit();   // shield still blocks it, hit() handles that
+  }
 
   for(const u of level.powerups){
     if(u.taken) continue;
     if(overlap(pbox(),{x:u.x-13,y:u.y-13,w:26,h:26})){
       u.taken=true;
       if(u.type==='shield'){ player.shield=SHIELD_FRAMES; SFX.shield(); el('msg').textContent='🛡️ Shield up!'; }
-      else { player.lives++; SFX.life(); el('msg').textContent='💚 Extra life!'; }
+      else if(u.type==='life'){ player.lives++; SFX.life(); el('msg').textContent='💚 Extra life!'; }
+      else if(u.type==='speed'){ player.speedT=BOOST_FRAMES; SFX.shield(); el('msg').textContent='⚡ Speed boost!'; }
+      else if(u.type==='jump'){ player.jumpT=BOOST_FRAMES; SFX.shield(); el('msg').textContent='🍃 Super jump!'; }
+      else if(u.type==='magnet'){ player.magnetT=MAGNET_FRAMES; SFX.shield(); el('msg').textContent='🧲 Coin magnet!'; }
+      else if(u.type==='fire'){ player.fireT=BOOST_FRAMES; SFX.shield(); el('msg').textContent='🔥 Fireball aura!'; }
+      if(u.secret) markSecretFound(u.secret);
       setTimeout(()=>{ if(!gameOver&&!win&&!levelComplete) el('msg').textContent=''; },1300);
       updateHud(); burst(u.x,u.y,'#4dd0ff');
     }
   }
 
+  const coinReach = player.magnetT>0 ? 70 : 11;
   for(const c of level.coins){
     if(c.collected) continue;
-    if(overlap(pbox(),{x:c.x-11,y:c.y-11,w:22,h:22})){
+    if(overlap(pbox(),{x:c.x-coinReach,y:c.y-coinReach,w:coinReach*2,h:coinReach*2})){
       c.collected=true; score+=50; SFX.coin(); updateHud(); burst(c.x,c.y,'#ffd700');
+      if(c.secret) markSecretFound(c.secret);
     }
   }
 
@@ -600,9 +1010,21 @@ function update(){
     e.x+=e.speed*e.dir;
     if(e.x<e.range[0]){e.x=e.range[0];e.dir=1;}
     if(e.x>e.range[1]){e.x=e.range[1];e.dir=-1;}
+    if(e.type==='shooter'){
+      e.fireTimer--;
+      if(e.fireTimer<=0){
+        e.fireTimer=e.fireTimer0||90;
+        const dir = player.x<e.x?-1:1;
+        projectiles.push({x:e.x+15,y:e.y-16,vx:dir*4.2,life:150});
+        SFX.dbl();
+      }
+    }
+    if(levelComplete) continue;                 // safe once you've reached the flag
     const eb={x:e.x,y:e.y-26,w:30,h:26};
     if(overlap(pbox(),eb) && player.inv<=0){
-      if(player.vy>0 && (player.y+player.h)-eb.y<22){
+      if(player.fireT>0){
+        e.alive=false; SFX.stomp(); burst(e.x+15,e.y-20,'#ff5e2e'); score+=100; updateHud();
+      } else if(player.vy>0 && (player.y+player.h)-eb.y<22){
         e.alive=false; player.vy=-9.5; player.jumps=1; score+=100; SFX.stomp(); burst(e.x+15,e.y-20,'#ff9f43'); updateHud();
       } else if(player.shield>0){
         // shield destroys the enemy instead of hurting you
@@ -611,7 +1033,17 @@ function update(){
     }
   }
 
-  if(level.boss && level.boss.alive) updateBoss();
+  for(let i=projectiles.length-1;i>=0;i--){
+    const p=projectiles[i];
+    p.x+=p.vx; p.life--;
+    if(p.life<=0 || p.x<-20 || p.x>level.width+20){ projectiles.splice(i,1); continue; }
+    if(!levelComplete && overlap(pbox(),{x:p.x-6,y:p.y-6,w:12,h:12}) && player.inv<=0){
+      if(player.shield>0){ SFX.block(); burst(p.x,p.y,'#4dd0ff'); } else hit();
+      projectiles.splice(i,1);
+    }
+  }
+
+  if(!levelComplete && level.boss && level.boss.alive) updateBoss();
 
   if(!level.noFlag && !levelComplete && overlap(pbox(),{x:level.flag.x,y:level.flag.y,w:24,h:82})) finishLevel();
 
@@ -661,8 +1093,8 @@ function hit(ignoreShield){
     setTimeout(()=>{ if(!gameOver&&!win&&!levelComplete) el('msg').textContent=''; },1100);
     return;
   }
-  player.lives--; SFX.hurt(); player.shield=0;
-  if(player.lives<=0) endGame(); else resetPlayer();
+  player.lives--; SFX.hurt(); player.shield=0; player.tookDamage=true;
+  if(player.lives<=0) endGame(); else resetPlayer(true);
   updateHud();
 }
 function endGame(){
@@ -673,14 +1105,29 @@ function endGame(){
 function finishLevel(){
   levelComplete=true;
   const all=level.coins.every(c=>c.collected);
+  const noHit=!player.tookDamage;
   score+=200+(all?500:0)+timeLeft*5;
   player.lives++;
+  const newHero = !save.cleared.includes(levelIndex) && CHARACTERS.find(c=>c.unlocksAfterLevel===levelIndex);
   unlockLevel(levelIndex);
   recordScore(score);
+
+  // stars: clear (always) + all coins + no hit this run, best-ever kept per level
+  const starsEarned = 1 + (all?1:0) + (noHit?1:0);
+  save.stars[levelIndex] = Math.max(save.stars[levelIndex]||0, starsEarned);
+  if(all && !save.coinLevels.includes(levelIndex)) save.coinLevels.push(levelIndex);
+  if(level.isBoss && noHit) save.bossNoHit=true;
+  if(timeLeft/level.time >= 0.4) save.speedDemon=true;
+  writeSave();
+  const newTrophies=checkTrophies();
+
   SFX.win(); setTimeout(SFX.life,500); updateHud();
-  el('msg').textContent = level.isBoss
+  const base = level.isBoss
     ? '🏆 Victory! +'+(timeLeft*5)+' time bonus'
     : (all?'🎉 Perfect clear! ':'🎉 Level complete! ')+'+1 life · +'+(timeLeft*5)+' time bonus';
+  const starMsg = '  ·  ' + '⭐'.repeat(starsEarned) + '☆'.repeat(3-starsEarned);
+  const trophyMsg = newTrophies.length ? '  ·  🏆 '+newTrophies[0].name+' unlocked!' : '';
+  el('msg').textContent = base + starMsg + (newHero ? '  ·  🔓 '+newHero.name+' unlocked!' : '') + trophyMsg;
   setTimeout(nextLevel,1900);
 }
 function nextLevel(){
@@ -701,9 +1148,13 @@ function stepParticles(){ parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.16;p.lif
    RENDER
    ============================================================ */
 const THEMES={
-  grass:{sky1:'#5c94fc',sky2:'#a8d8ff',dirt:'#8b5a2b',top:'#4caf50',hill:'#3d8b40'},
-  cave: {sky1:'#2c2c54',sky2:'#474787',dirt:'#4a3f5c',top:'#7d5fff',hill:'#3a3a63'},
-  sky:  {sky1:'#ff7675',sky2:'#ffd6a5',dirt:'#a4402c',top:'#ff7f50',hill:'#d1604a'}
+  grass:  {sky1:'#5c94fc',sky2:'#a8d8ff',dirt:'#8b5a2b',top:'#4caf50',hill:'#3d8b40'},
+  dusk:   {sky1:'#5b3a8a',sky2:'#ff9a6b',dirt:'#4a3a2c',top:'#6a8a4a',hill:'#3a2a52'},
+  cave:   {sky1:'#2c2c54',sky2:'#474787',dirt:'#4a3f5c',top:'#7d5fff',hill:'#3a3a63'},
+  sky:    {sky1:'#ff7675',sky2:'#ffd6a5',dirt:'#a4402c',top:'#ff7f50',hill:'#d1604a'},
+  desert: {sky1:'#ffb877',sky2:'#ffe4b0',dirt:'#c9944f',top:'#e0b25c',hill:'#d1913f'},
+  ice:    {sky1:'#a8d8ff',sky2:'#eaf7ff',dirt:'#7fa8c9',top:'#dff3ff',hill:'#b8dcf0'},
+  forest: {sky1:'#0d0d1f',sky2:'#241f3d',dirt:'#2e2438',top:'#4a3a5c',hill:'#1c1730'}
 };
 function draw(){
   const t=THEMES[level.theme]||THEMES.grass;
@@ -720,23 +1171,71 @@ function draw(){
   ctx.save(); ctx.translate(-camX,0);
 
   for(const p of level.platforms){
+    if(p.tight){
+      // a visibly narrow rock squeeze — jagged, not a flat platform, so it reads as "tight" on sight
+      ctx.fillStyle='#4a3d58'; roundRect(ctx,p.x,p.y,p.w,p.h,2); ctx.fill();
+      ctx.fillStyle='#7a6a8f';
+      const edgeY = p.tightEdge==='bottom' ? p.y+p.h : p.y;
+      for(let sx=p.x;sx<p.x+p.w;sx+=18){
+        ctx.beginPath();
+        if(p.tightEdge==='bottom'){ ctx.moveTo(sx,edgeY); ctx.lineTo(sx+9,edgeY+11); ctx.lineTo(sx+18,edgeY); }
+        else { ctx.moveTo(sx,edgeY); ctx.lineTo(sx+9,edgeY-11); ctx.lineTo(sx+18,edgeY); }
+        ctx.closePath(); ctx.fill();
+      }
+      continue;
+    }
     ctx.fillStyle=t.dirt; roundRect(ctx,p.x,p.y,p.w,p.h,3); ctx.fill();
-    ctx.fillStyle=t.top; ctx.fillRect(p.x,p.y,p.w,9);
-    ctx.fillStyle='rgba(0,0,0,.12)';
-    for(let bx=p.x+8;bx<p.x+p.w-8;bx+=28) ctx.fillRect(bx,p.y+17,3,3);
+    ctx.fillStyle = p.ice?'#cfeeff' : p.slow?'#e0c27a' : t.top;
+    ctx.fillRect(p.x,p.y,p.w,9);
+    if(p.ice){ ctx.fillStyle='rgba(255,255,255,.5)'; ctx.fillRect(p.x,p.y,p.w,3); }
+    else if(p.slow){ ctx.fillStyle='rgba(160,120,40,.3)'; for(let bx=p.x+6;bx<p.x+p.w-6;bx+=16) ctx.fillRect(bx,p.y+2,3,4); }
+    else { ctx.fillStyle='rgba(0,0,0,.12)'; for(let bx=p.x+8;bx<p.x+p.w-8;bx+=28) ctx.fillRect(bx,p.y+17,3,3); }
   }
   for(const m of level.movers){
     ctx.fillStyle='#ffa502'; roundRect(ctx,m.x,m.y,m.w,m.h,4); ctx.fill();
     ctx.fillStyle='#ffd59e'; ctx.fillRect(m.x,m.y,m.w,4);
   }
+  for(const c of (level.crumbles||[])){
+    if(c.state==='gone') continue;
+    const jit = c.state==='shaking' ? (Math.random()-.5)*4 : 0;
+    ctx.globalAlpha = c.state==='shaking' ? 0.55+0.35*Math.sin(frame/2) : 1;
+    ctx.fillStyle='#6b5142'; roundRect(ctx,c.x+jit,c.y,c.w,c.h,3); ctx.fill();
+    ctx.fillStyle= c.state==='shaking' ? '#ff8a5c' : '#a8886e';
+    ctx.fillRect(c.x+jit,c.y,c.w,7);
+    ctx.globalAlpha=1;
+  }
+  for(const s of (level.spikes||[])){
+    const active = !s.pulse || ((frame+(s.phase||0))%(s.pulse.on+s.pulse.off)) < s.pulse.on;
+    const willActivate = s.pulse && !active && ((frame+(s.phase||0))%(s.pulse.on+s.pulse.off)) > s.pulse.on+s.pulse.off-20;
+    ctx.fillStyle = !s.pulse ? '#8a8a9a' : active ? '#9fd8ff' : willActivate ? '#5a7a9a' : '#3a4a5a';
+    ctx.globalAlpha = s.pulse && !active ? 0.5 : 1;
+    for(let sx=s.x;sx<s.x+s.w;sx+=14){
+      ctx.beginPath(); ctx.moveTo(sx,s.y+s.h); ctx.lineTo(sx+7,s.y); ctx.lineTo(sx+14,s.y+s.h); ctx.closePath(); ctx.fill();
+    }
+    ctx.strokeStyle='#4a4a58'; ctx.lineWidth=1;
+    for(let sx=s.x;sx<s.x+s.w;sx+=14){
+      ctx.beginPath(); ctx.moveTo(sx,s.y+s.h); ctx.lineTo(sx+7,s.y); ctx.lineTo(sx+14,s.y+s.h); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+  for(const cp of (level.checkpoints||[])){
+    ctx.fillStyle= cp.reached?'#2ed573':'#667';
+    ctx.fillRect(cp.x-2,cp.y,4,82);
+    ctx.fillStyle= cp.reached?'#4dd0ff':'#445';
+    const fw = cp.reached?Math.sin(frame/10)*4:0;
+    ctx.beginPath(); ctx.moveTo(cp.x+2,cp.y+2);
+    ctx.lineTo(cp.x+28+fw,cp.y+13); ctx.lineTo(cp.x+2,cp.y+24); ctx.fill();
+  }
   for(const u of level.powerups){
     if(u.taken) continue;
     const fl=Math.sin(frame/8)*3;
-    ctx.fillStyle = u.type==='shield' ? '#4dd0ff' : '#2ed573';
+    const PU_COLOR = {shield:'#4dd0ff',life:'#2ed573',speed:'#ffd32a',jump:'#7efff5',magnet:'#e056fd',fire:'#ff5e2e'};
+    const PU_ICON = {shield:'🛡',life:'♥',speed:'⚡',jump:'🍃',magnet:'🧲',fire:'🔥'};
+    ctx.fillStyle = PU_COLOR[u.type]||'#2ed573';
     roundRect(ctx,u.x-13,u.y-13+fl,26,26,7); ctx.fill();
     ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
     ctx.fillStyle='#fff'; ctx.font='bold 15px Arial'; ctx.textAlign='center';
-    ctx.fillText(u.type==='shield'?'🛡':'♥', u.x, u.y+6+fl);
+    ctx.fillText(PU_ICON[u.type]||'?', u.x, u.y+6+fl);
     ctx.textAlign='left';
   }
   for(const c of level.coins){
@@ -746,7 +1245,17 @@ function draw(){
     ctx.beginPath(); ctx.ellipse(c.x,c.y+Math.sin(frame/16)*3,sw,11,0,0,Math.PI*2); ctx.fill();
     ctx.strokeStyle='#c79100'; ctx.lineWidth=2; ctx.stroke();
   }
-  for(const e of level.enemies){ if(e.alive) drawGoober(e.x,e.y,e.dir); }
+  for(const e of level.enemies){
+    if(!e.alive) continue;
+    if(e.type==='flyer') drawFlyer(e.x,e.y,e.dir);
+    else if(e.type==='shooter') drawShooter(e.x,e.y,e.fireTimer,e.fireTimer0||90);
+    else if(e.type==='ghost') drawGhost(e.x,e.y,e.dir);
+    else drawGoober(e.x,e.y,e.dir);
+  }
+  projectiles.forEach(p=>{
+    ctx.fillStyle='#ff6b35'; ctx.shadowBlur=8; ctx.shadowColor='#ff6b35';
+    ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  });
   if(level.boss && level.boss.alive) drawBoss(level.boss);
 
   if(!level.noFlag){
@@ -761,19 +1270,41 @@ function draw(){
   parts.forEach(p=>{ ctx.fillStyle=p.c; ctx.fillRect(p.x,p.y,3.5,3.5); });
 
   if(player.inv<=0 || Math.floor(player.inv/4)%2===0)
-    drawHero(ctx,chosen,player.x,player.y,player.w,player.h,player.facing,frame,player.shield>0);
+    if(player.fireT>0 || player.magnetT>0){
+      ctx.save();
+      ctx.strokeStyle = player.fireT>0 ? '#ff5e2e' : '#e056fd';
+      ctx.globalAlpha=0.55+Math.sin(frame/6)*0.2; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.arc(player.x+player.w/2,player.y+player.h/2,player.w*0.9,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+    { const hb = pbox(); drawHero(ctx,chosen,hb.x,hb.y,hb.w,hb.h,player.facing,frame,player.shield>0); }
 
   ctx.restore();
   ctx.restore();
 
-  // shield timer bar
-  if(player.shield>0){
-    const bw=160, bx=(W-bw)/2;
-    ctx.fillStyle='rgba(0,0,0,.5)'; roundRect(ctx,bx,12,bw,10,5); ctx.fill();
-    ctx.fillStyle='#4dd0ff'; roundRect(ctx,bx+1,13,(bw-2)*(player.shield/SHIELD_FRAMES),8,4); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
-    ctx.fillText('SHIELD', W/2, 33); ctx.textAlign='left';
+  // ---- fog of the Haunted Forest: a lit radius follows the player, everything else dims ----
+  if(level.fog){
+    const px=player.x-camX+player.w/2, py=player.y+player.h/2;
+    const fg=ctx.createRadialGradient(px,py,60,px,py,230);
+    fg.addColorStop(0,'rgba(8,6,20,0)'); fg.addColorStop(1,'rgba(8,6,20,.86)');
+    ctx.fillStyle=fg; ctx.fillRect(0,0,W,H);
   }
+
+  // active buff timer bars, stacked under each other
+  const buffBars = [
+    ['shield', player.shield, SHIELD_FRAMES, '#4dd0ff'],
+    ['speed',  player.speedT, BOOST_FRAMES,  '#ffd32a'],
+    ['jump',   player.jumpT,  BOOST_FRAMES,  '#7efff5'],
+    ['magnet', player.magnetT, MAGNET_FRAMES, '#e056fd'],
+    ['fire',   player.fireT,  BOOST_FRAMES,  '#ff5e2e'],
+  ].filter(b=>b[1]>0);
+  buffBars.forEach(([label,val,max,color],i)=>{
+    const bw=160, bx=(W-bw)/2, by=12+i*22;
+    ctx.fillStyle='rgba(0,0,0,.5)'; roundRect(ctx,bx,by,bw,10,5); ctx.fill();
+    ctx.fillStyle=color; roundRect(ctx,bx+1,by+1,(bw-2)*(val/max),8,4); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+    ctx.fillText(label.toUpperCase(), W/2, by+9); ctx.textAlign='left';
+  });
 
   if(showFps){
     ctx.fillStyle = fps<50 ? '#ff5252' : '#8fd';
@@ -788,6 +1319,36 @@ function drawGoober(x,y,dir){
   ctx.fillStyle='#922b21'; ctx.beginPath(); ctx.ellipse(x+15,y-9,15,7,0,0,Math.PI); ctx.fill();
   ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+10,y-17,4,0,Math.PI*2); ctx.arc(x+21,y-17,4,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(x+10+dir*1.4,y-17,1.9,0,Math.PI*2); ctx.arc(x+21+dir*1.4,y-17,1.9,0,Math.PI*2); ctx.fill();
+}
+function drawFlyer(x,y,dir){
+  const flap=Math.sin(frame/4)*10;
+  ctx.fillStyle='#8854d0';
+  ctx.beginPath(); ctx.moveTo(x+15,y-14); ctx.lineTo(x-6,y-20-flap); ctx.lineTo(x+8,y-10); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x+15,y-14); ctx.lineTo(x+36,y-20-flap); ctx.lineTo(x+22,y-10); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#a55eea'; ctx.beginPath(); ctx.ellipse(x+15,y-13,13,10,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+11,y-16,3.2,0,Math.PI*2); ctx.arc(x+20,y-16,3.2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(x+11+dir*1.2,y-16,1.6,0,Math.PI*2); ctx.arc(x+20+dir*1.2,y-16,1.6,0,Math.PI*2); ctx.fill();
+}
+function drawShooter(x,y,fireTimer,fireMax){
+  const charge=1-(fireTimer/fireMax);            // brighter as it's about to fire
+  ctx.fillStyle='#2d5a2d'; ctx.fillRect(x+11,y-6,8,6);
+  ctx.fillStyle= charge>0.85 ? '#ff4757' : '#2ed573';
+  ctx.beginPath(); ctx.ellipse(x+15,y-16,14,12,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1a3d1a'; ctx.beginPath(); ctx.ellipse(x+15,y-16,14,12,0,0,Math.PI*2); ctx.lineWidth=2; ctx.strokeStyle='#1a3d1a'; ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+15,y-16,4+charge*2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ff6b35'; ctx.beginPath(); ctx.arc(x+15,y-16,2+charge*1.5,0,Math.PI*2); ctx.fill();
+}
+function drawGhost(x,y,dir){
+  const bob=Math.sin(frame/8)*4, wob=Math.sin(frame/6)*2;
+  ctx.globalAlpha=0.72+0.15*Math.sin(frame/10);
+  ctx.fillStyle='#eef3ff';
+  ctx.beginPath();
+  ctx.arc(x+15,y-16+bob,14,Math.PI,0);
+  ctx.lineTo(x+29,y+bob);
+  for(let k=0;k<4;k++){ const wx=x+29-k*7.5; ctx.quadraticCurveTo(wx-3.5,y+6+bob+(k%2?wob:-wob),wx-7.5,y+bob); }
+  ctx.lineTo(x+1,y-16+bob); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#2c2c54'; ctx.beginPath(); ctx.arc(x+10,y-16+bob,3,0,Math.PI*2); ctx.arc(x+20,y-16+bob,3,0,Math.PI*2); ctx.fill();
 }
 function drawBoss(b){
   const flash=b.hitFlash>0&&Math.floor(b.hitFlash/4)%2===0;
@@ -862,6 +1423,7 @@ function loop(now){
    how big it LOOKS via CSS, so physics and level coordinates
    never change across devices.
    ============================================================ */
+function isFullscreen(){ return !!(document.fullscreenElement||document.webkitFullscreenElement); }
 function fitCanvas(){
   const isTouch = window.matchMedia('(hover:none)').matches;
   const landscape = window.innerWidth > window.innerHeight;
@@ -875,6 +1437,13 @@ function fitCanvas(){
     canvas.style.width  = Math.floor(W*scale)+'px';
     canvas.style.height = Math.floor(H*scale)+'px';
     el('touch').style.height = padH+'px';
+  } else if(isFullscreen()){
+    const hudH = el('hud').offsetHeight || 24;
+    const availW = window.innerWidth - 20;
+    const availH = window.innerHeight - hudH - 20;
+    const scale = Math.min(availW/W, availH/H);
+    canvas.style.width  = Math.floor(W*scale)+'px';
+    canvas.style.height = Math.floor(H*scale)+'px';
   } else {
     canvas.style.width = '';
     canvas.style.height = '';
@@ -884,6 +1453,18 @@ function fitCanvas(){
 addEventListener('resize', fitCanvas);
 addEventListener('orientationchange', ()=>setTimeout(fitCanvas,250));
 setTimeout(fitCanvas, 60);
+
+el('fsBtn').onclick=()=>{
+  const target=document.documentElement;
+  if(!isFullscreen()){ (target.requestFullscreen||target.webkitRequestFullscreen)?.call(target); }
+  else { (document.exitFullscreen||document.webkitExitFullscreen)?.call(document); }
+};
+function onFsChange(){
+  el('fsBtn').textContent = isFullscreen()?'⛶ Exit fullscreen':'⛶ Fullscreen';
+  fitCanvas();
+}
+addEventListener('fullscreenchange', onFsChange);
+addEventListener('webkitfullscreenchange', onFsChange);
 
 /* ============================================================
    UI
@@ -901,48 +1482,62 @@ function hold(id,key){
   b.addEventListener('mouseleave',()=>set(false));
   b.addEventListener('contextmenu',e=>e.preventDefault());
 }
-hold('bL','ArrowLeft'); hold('bR','ArrowRight'); hold('bJ',' ');
+hold('bL','ArrowLeft'); hold('bR','ArrowRight'); hold('bJ',' '); hold('bD','ArrowDown');
 // if a touch is lost anywhere (notification, call), release everything
-addEventListener('blur', ()=>{ keys['ArrowLeft']=keys['ArrowRight']=keys[' ']=false; });
+addEventListener('blur', ()=>{ keys['ArrowLeft']=keys['ArrowRight']=keys[' ']=keys['ArrowDown']=false; });
 // stop the whole page from scrolling / rubber-banding during play
 document.addEventListener('touchmove', e=>{ if(running) e.preventDefault(); }, {passive:false});
 
 const charsEl=el('chars');
-CHARACTERS.forEach(c=>{
-  const d=document.createElement('div');
-  if(c.id===save.hero) chosen=c;
-  d.className='card'+(c.id===save.hero?' sel':'');
-  d.innerHTML=`<canvas width="58" height="58"></canvas><div class="nm">${c.name}</div><div class="ab">${c.ability}</div>`;
-  drawHero(d.querySelector('canvas').getContext('2d'),c,15,8,28,40,1,0,false);
-  d.onclick=()=>{ ac(); chosen=c; save.hero=c.id; writeSave();
-    [...charsEl.children].forEach(k=>k.classList.remove('sel')); d.classList.add('sel'); tone(680,0.07); };
-  charsEl.appendChild(d);
-});
+function renderChars(){
+  charsEl.innerHTML='';
+  // if the saved hero got locked out (e.g. an older save picked one before this system existed), fall back to Bolt
+  if(!charUnlocked(CHARACTERS.find(c=>c.id===save.hero) || CHARACTERS[0])) save.hero='bolt';
+  CHARACTERS.forEach(c=>{
+    const unlocked = charUnlocked(c);
+    const d=document.createElement('div');
+    if(c.id===save.hero) chosen=c;
+    d.className='card'+(c.id===save.hero&&unlocked?' sel':'')+(unlocked?'':' locked');
+    if(unlocked){
+      d.innerHTML=`<canvas width="58" height="58"></canvas><div class="nm">${c.name}</div><div class="ab">${c.ability}</div>`;
+      drawHero(d.querySelector('canvas').getContext('2d'),c,15,8,28,40,1,0,false);
+      d.onclick=()=>{ ac(); chosen=c; save.hero=c.id; writeSave();
+        [...charsEl.children].forEach(k=>k.classList.remove('sel')); d.classList.add('sel'); tone(680,0.07); };
+    } else {
+      d.innerHTML=`🔒<div class="nm">${c.name}</div><div class="ab">Clear "${LEVEL_NAMES[c.unlocksAfterLevel]}"</div>`;
+    }
+    charsEl.appendChild(d);
+  });
+}
 
 let startLevel=0;
-const LEVEL_NAMES=['Green hills','Broken bridge','Crystal caves','Goober King'];
+const LEVEL_NAMES=['Green hills','Broken bridge','Desert ruins','Crystal caves','Frozen peaks','Haunted forest','Goober King'];
 const lvlEl=el('levelPick');
 
+function starGlyphs(n){ return '⭐'.repeat(n)+'☆'.repeat(3-n); }
 function renderLevelPick(){
   if(startLevel >= save.unlocked) startLevel = save.unlocked-1;
   lvlEl.innerHTML='';
   LEVEL_NAMES.forEach((nm,i)=>{
     const locked = i >= save.unlocked;
     const done = save.cleared.includes(i);
+    const stars = save.stars[i]||0;
     const d=document.createElement('div');
     d.className='lvl'+(i===startLevel&&!locked?' sel':'')+(locked?' locked':'');
     d.innerHTML = locked
       ? `🔒<small class="lock">Locked</small>`
-      : `${i+1}${done?' ✓':''}<small>${nm}</small>`;
+      : `${i+1}${done?' ✓':''}<small>${nm}</small>${done?`<div class="lvlStars">${starGlyphs(stars)}</div>`:''}`;
     if(!locked) d.onclick=()=>{ ac(); startLevel=i; tone(620,0.06); renderLevelPick(); };
     lvlEl.appendChild(d);
   });
   const info=el('saveInfo');
+  const totalStars=LEVEL_NAMES.reduce((sum,_,i)=>sum+(save.stars[i]||0),0);
   if(save.best>0 || save.cleared.length>0)
-    info.innerHTML = `Best score <b>${save.best}</b> · ${save.cleared.length}/4 levels cleared`;
+    info.innerHTML = `Best score <b>${save.best}</b> · ${save.cleared.length}/${LEVEL_NAMES.length} levels cleared · ${totalStars}/${LEVEL_NAMES.length*3} ⭐`;
   else
     info.textContent = 'Clear a level to unlock the next one.';
 }
+renderChars();
 renderLevelPick();
 
 el('startBtn').onclick=()=>{
@@ -961,11 +1556,30 @@ el('menuBtn').onclick=()=>{
   running=false; stopMusic(); if(timerId) clearInterval(timerId);
   el('playArea').classList.add('hidden');
   el('select').classList.remove('hidden');
+  renderChars();
   renderLevelPick();
 };
 el('wipeBtn').onclick=()=>{
-  if(confirm('Erase saved progress and best score?')){ wipeSave(); startLevel=0; renderLevelPick(); tone(300,0.2,'sawtooth'); }
+  if(confirm('Erase saved progress and best score?')){ wipeSave(); startLevel=0; renderChars(); renderLevelPick(); tone(300,0.2,'sawtooth'); }
 };
+let wasRunning=false;
+el('helpBtn').onclick=()=>{ el('helpModal').classList.remove('hidden'); wasRunning=running; running=false; };
+el('helpCloseBtn').onclick=()=>{ el('helpModal').classList.add('hidden'); running=wasRunning; };
+el('helpModal').onclick=(e)=>{ if(e.target.id==='helpModal'){ el('helpModal').classList.add('hidden'); running=wasRunning; } };
+
+function renderTrophies(){
+  const grid=el('trophyGrid'); grid.innerHTML='';
+  TROPHIES.forEach(t=>{
+    const unlocked=save.trophies.includes(t.id);
+    const d=document.createElement('div');
+    d.className='trophyCard'+(unlocked?'':' locked');
+    d.innerHTML=`<div class="tIcon">${unlocked?t.icon:'🔒'}</div><div><div class="tName">${t.name}</div><div class="tDesc">${t.desc}</div></div>`;
+    grid.appendChild(d);
+  });
+}
+el('trophyBtn').onclick=()=>{ renderTrophies(); el('trophyModal').classList.remove('hidden'); wasRunning=running; running=false; };
+el('trophyCloseBtn').onclick=()=>{ el('trophyModal').classList.add('hidden'); running=wasRunning; };
+el('trophyModal').onclick=(e)=>{ if(e.target.id==='trophyModal'){ el('trophyModal').classList.add('hidden'); running=wasRunning; } };
 el('musicBtn').onclick=()=>{
   musicOn=!musicOn; el('musicBtn').textContent=musicOn?'🎵 Music on':'🎵 Music off';
   if(musicOn&&running) startMusic(currentTrack); else stopMusic();
@@ -973,6 +1587,7 @@ el('musicBtn').onclick=()=>{
 el('sfxBtn').onclick=()=>{ sfxOn=!sfxOn; el('sfxBtn').textContent=sfxOn?'🔊 SFX on':'🔇 SFX off'; };
 el('fpsBtn').onclick=()=>{ showFps=!showFps; el('fpsBtn').textContent=showFps?'📊 FPS on':'📊 FPS'; };
 
+el('levelTotal').textContent=levels.length;
 applyCharacter(); loadLevel(0); requestAnimationFrame(loop);
 </script>
 </body>
