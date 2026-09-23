@@ -1561,6 +1561,7 @@ function renderLevelPick(){
 renderChars();
 renderLevelPick();
 
+function isMobileLandscape(){ return window.matchMedia('(hover:none)').matches && window.innerWidth>window.innerHeight; }
 function requestGameFullscreen(){
   // On touch+landscape phones, most of the "tiny game with black bars"
   // space loss is the browser's own address bar, not our layout — asking
@@ -1568,7 +1569,7 @@ function requestGameFullscreen(){
   // for anything but <video>, so this silently no-ops there; fitCanvas()
   // still recomputes correctly either way via the resize/fullscreenchange
   // listeners already wired up.
-  if(!(window.matchMedia('(hover:none)').matches && window.innerWidth>window.innerHeight)) return;
+  if(!isMobileLandscape()) return;
   const target=document.documentElement;
   try{ (target.requestFullscreen||target.webkitRequestFullscreen)?.call(target)?.catch?.(()=>{}); }catch(e){}
 }
@@ -1584,6 +1585,7 @@ el('startBtn').onclick=()=>{
   el('playArea').classList.remove('hidden');
   document.body.classList.add('playing');
   requestGameFullscreen();
+  if(isMobileLandscape()) el('backLink').textContent='← Levels';
   SFX.shield();
 };
 el('restartBtn').onclick=()=>{
@@ -1596,9 +1598,24 @@ el('menuBtn').onclick=()=>{
   el('select').classList.remove('hidden');
   document.body.classList.remove('playing');
   exitGameFullscreen();
+  el('backLink').textContent='← Menu';
   renderChars();
   renderLevelPick();
 };
+// On mobile there's no room for the desktop menu row (#btnRow, hidden on
+// touch+landscape to leave space for the touch controls), so the only way
+// back to the level/character picker was the corner "< Menu" link — but
+// that always navigated straight to the arcade page, skipping the picker
+// entirely. While actively playing on mobile, redirect that tap to the
+// same "back to picker" action as the desktop Menu button instead; off
+// mobile, or once you're back at the picker, it still leaves for the
+// arcade page exactly as before.
+el('backLink').addEventListener('click', e=>{
+  if(isMobileLandscape() && document.body.classList.contains('playing')){
+    e.preventDefault();
+    el('menuBtn').click();
+  }
+});
 el('wipeBtn').onclick=()=>{
   if(confirm('Erase saved progress and best score?')){ wipeSave(); startLevel=0; renderChars(); renderLevelPick(); tone(300,0.2,'sawtooth'); }
 };

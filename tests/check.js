@@ -151,12 +151,24 @@ async function checkPixelQuest(browser) {
         await page.tap('#bD').catch(() => {});
 
         // #menuBtn lives in #btnRow, which is deliberately display:none on
-        // touch+landscape — on phone the only nav during play is the
-        // floating "< Menu" link, which exits to the arcade landing page
-        // entirely rather than back to the level-select screen. Flagged to
-        // the human as a UX question, not silently treated as a bug.
-        const backLinkHref = await page.locator('#backLink').getAttribute('href');
-        log(area, 'On touch/mobile, only nav during play is the corner "< Menu" link (exits to index.html, not level-select)', backLinkHref === 'index.html', `href=${backLinkHref}`);
+        // touch+landscape, so on mobile the corner "< Menu" link is
+        // repurposed while playing: it should go back to the picker screen
+        // (not navigate away to index.html) and relabel itself accordingly.
+        const labelWhilePlaying = await page.locator('#backLink').textContent();
+        log(area, 'Corner link relabels to "Levels" while playing on mobile', labelWhilePlaying.includes('Levels'), labelWhilePlaying);
+
+        const urlBefore = page.url();
+        await page.locator('#backLink').click();
+        await page.waitForTimeout(150);
+        const backAtSelectViaCorner = await page.evaluate(() => !document.getElementById('select').classList.contains('hidden'));
+        const stayedOnPage = page.url() === urlBefore;
+        log(area, 'Corner link returns to picker on mobile (does not navigate away) while playing', backAtSelectViaCorner && stayedOnPage, `select-visible=${backAtSelectViaCorner} stayed=${stayedOnPage}`);
+
+        const labelAtPicker = await page.locator('#backLink').textContent();
+        log(area, 'Corner link relabels back to "Menu" once back at the picker', labelAtPicker.includes('Menu'), labelAtPicker);
+
+        const hrefAtPicker = await page.locator('#backLink').getAttribute('href');
+        log(area, 'Corner link still points to index.html for a real exit from the picker', hrefAtPicker === 'index.html');
       } else {
         await page.keyboard.down('ArrowRight');
         await page.waitForTimeout(300);
