@@ -78,6 +78,14 @@
   .name { font-size:30px; font-weight:bold; letter-spacing:3px; margin-bottom:8px; }
   .pf .name { color:var(--green); font-family:'Courier New', monospace; font-weight:900; text-shadow:3px 3px 0 #0b3a20; }
   .pb .name { color:var(--pink); font-style:italic; text-shadow:0 0 18px rgba(255,46,136,.7); }
+
+  .device {
+    display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:bold;
+    letter-spacing:.3px; padding:5px 11px; border-radius:20px; margin-bottom:12px;
+  }
+  .pf .device { color:#ffd76b; background:rgba(255,215,107,.12); border:1px solid rgba(255,215,107,.35); }
+  .pb .device { color:#7ef2d6; background:rgba(126,242,214,.12); border:1px solid rgba(126,242,214,.35); }
+
   .desc { color:#b2aedb; font-size:14px; line-height:1.65; margin-bottom:14px; max-width:44ch; }
 
   .chips { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:14px; }
@@ -157,6 +165,7 @@
     <canvas id="cPf" aria-hidden="true"></canvas>
     <div class="content">
       <h2 class="name">PIXEL QUEST</h2>
+      <div class="device">🖥️ Best on desktop · playable on mobile (landscape)</div>
       <p class="desc">
         A platformer with themed levels and a boss at the end. Run, double jump and
         squash your way to the Goober King. Every hero has its own ability.
@@ -165,7 +174,6 @@
         <span class="chip">Boss fight</span>
         <span class="chip">Choose your hero</span>
         <span class="chip">Saves progress</span>
-        <span class="chip">Best in landscape</span>
       </div>
       <div class="prog" id="pProg"></div>
       <span class="play" id="pPlay">PLAY ▶</span>
@@ -176,6 +184,7 @@
     <canvas id="cPb" aria-hidden="true"></canvas>
     <div class="content">
       <h2 class="name">PINBALL</h2>
+      <div class="device">📱 Great on desktop or mobile</div>
       <p class="desc">
         Real flipper physics, ramps and multiball. Climb from Rookie to Nightmare —
         the table repaints and grows new hardware as you rise.
@@ -471,6 +480,7 @@
     }
 
     function step(dt) {
+      if (!ball) return; // resize() (which creates the ball) hasn't run yet on this first frame
       dt = Math.min(dt, 0.05); t += dt;
       fl.l = Math.max(0, fl.l - dt * 5); fl.r = Math.max(0, fl.r - dt * 5);
       var i, b, n = 3, h = dt / n;
@@ -520,6 +530,7 @@
     }
 
     function draw() {
+      if (!ball) return;
       var i, u;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);

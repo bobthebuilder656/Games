@@ -73,10 +73,11 @@
   #rotate .d { font-size:14px; color:#98a; max-width:280px; line-height:1.6; }
 
   @media (hover:none) {
-    #touch { display:flex; gap:14px; margin-top:10px; align-items:center; justify-content:center; }
-    .tpad { display:flex; gap:12px; }
-    #bL, #bR { width:80px; height:64px; font-size:26px; }
-    #bJ { width:130px; height:64px; font-size:18px; background:#e94560; box-shadow:0 4px 0 #a32b3f; }
+    #touch { display:flex; gap:20px; margin-top:10px; align-items:center; justify-content:center; }
+    .tpad { display:flex; gap:12px; align-items:center; }
+    #bL, #bR { width:72px; height:64px; font-size:24px; }
+    #bJ { width:110px; height:64px; font-size:16px; background:#e94560; box-shadow:0 4px 0 #a32b3f; }
+    #bD { width:64px; height:56px; font-size:22px; }
   }
 
   /* ---------- phone layout ---------- */
@@ -86,10 +87,27 @@
 
   /* ---------- PHONE, LANDSCAPE: game on top, controls underneath ---------- */
   @media (hover:none) and (orientation:landscape) {
-    body { padding:0; margin:0; justify-content:flex-start; overflow:hidden; height:100vh; }
+    body { padding:0; margin:0; justify-content:flex-start; }
+    /* the gameplay screen locks the viewport (its own canvas + touch bar
+       fill it exactly); the select screen must stay scrollable, since a
+       short landscape phone can't fit hero cards + level picker + Start
+       without scrolling — locking it here clipped the Start button off
+       the bottom with no way to reach it */
+    body.playing { overflow:hidden; height:100vh; }
     h1, .sub, #hint { display:none; }
 
     #playArea { width:100vw; height:100vh; justify-content:flex-start; gap:0; }
+
+    #select {
+      width:100%; max-width:100%; padding:10px 12px 24px;
+      max-height:100vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    }
+    #chars { gap:8px; margin-bottom:10px; }
+    .card { padding:7px 4px; }
+    .card canvas { transform:scale(.82); margin-bottom:0; }
+    .pickLabel { font-size:13px; margin-bottom:6px; }
+    #levelPick { gap:6px; margin-bottom:8px; }
+    .lvl { padding:6px 12px; font-size:12px; }
 
     #hud {
       margin:0; padding:3px 10px; font-size:12px; gap:10px;
@@ -109,11 +127,12 @@
       align-items:center; justify-content:space-between;
       padding:4px 12px; gap:12px; background:#0a0a1c; flex-shrink:0;
     }
-    .tpad { display:flex; gap:12px; }
-    #bL, #bR { width:88px; height:100%; min-height:56px; font-size:30px; }
-    #bJ { width:150px; height:100%; min-height:56px; font-size:19px;
+    .tpad { display:flex; gap:12px; align-items:center; }
+    #bL, #bR { width:80px; height:100%; min-height:56px; font-size:28px; }
+    #bJ { width:120px; height:82%; min-height:56px; font-size:17px;
           background:#e94560; box-shadow:0 4px 0 #a32b3f; }
     #bJ:active { background:#ff6b81; }
+    #bD { width:66px; height:70%; min-height:48px; font-size:24px; }
 
     /* button row lives at the bottom; hide desktop-only buttons */
     #btnRow { display:none; }
@@ -247,10 +266,10 @@
   <div id="touch">
     <div class="tpad">
       <button class="tbtn" id="bL" aria-label="Move left">◀</button>
+      <button class="tbtn" id="bJ" aria-label="Jump">JUMP ▲</button>
       <button class="tbtn" id="bR" aria-label="Move right">▶</button>
-      <button class="tbtn" id="bD" aria-label="Duck">▼</button>
     </div>
-    <button class="tbtn" id="bJ" aria-label="Jump">JUMP ▲</button>
+    <button class="tbtn" id="bD" aria-label="Duck">▼</button>
   </div>
   <div id="msg"></div>
   <div id="btnRow">
@@ -1546,6 +1565,7 @@ el('startBtn').onclick=()=>{
   levels=makeLevels(); loadLevel(startLevel);
   el('select').classList.add('hidden');
   el('playArea').classList.remove('hidden');
+  document.body.classList.add('playing');
   SFX.shield();
 };
 el('restartBtn').onclick=()=>{
@@ -1556,6 +1576,7 @@ el('menuBtn').onclick=()=>{
   running=false; stopMusic(); if(timerId) clearInterval(timerId);
   el('playArea').classList.add('hidden');
   el('select').classList.remove('hidden');
+  document.body.classList.remove('playing');
   renderChars();
   renderLevelPick();
 };
