@@ -266,10 +266,12 @@
   <div id="touch">
     <div class="tpad">
       <button class="tbtn" id="bL" aria-label="Move left">◀</button>
-      <button class="tbtn" id="bJ" aria-label="Jump">JUMP ▲</button>
       <button class="tbtn" id="bR" aria-label="Move right">▶</button>
     </div>
-    <button class="tbtn" id="bD" aria-label="Duck">▼</button>
+    <div class="tpad">
+      <button class="tbtn" id="bD" aria-label="Duck">▼</button>
+      <button class="tbtn" id="bJ" aria-label="Jump">JUMP ▲</button>
+    </div>
   </div>
   <div id="msg"></div>
   <div id="btnRow">
@@ -1449,7 +1451,7 @@ function fitCanvas(){
   if(isTouch && landscape){
     const vh = window.innerHeight;
     const hudH  = el('hud').offsetHeight || 24;
-    const padH  = Math.max(64, Math.round(vh*0.22));   // control bar gets ~22% of height
+    const padH  = Math.max(70, Math.round(vh*0.19));   // control bar gets ~19% of height (70px floor keeps buttons tappable)
     const availW = window.innerWidth;
     const availH = vh - hudH - padH;
     const scale = Math.min(availW/W, availH/H);
@@ -1559,6 +1561,21 @@ function renderLevelPick(){
 renderChars();
 renderLevelPick();
 
+function requestGameFullscreen(){
+  // On touch+landscape phones, most of the "tiny game with black bars"
+  // space loss is the browser's own address bar, not our layout — asking
+  // for fullscreen here reclaims it. iOS Safari doesn't support fullscreen
+  // for anything but <video>, so this silently no-ops there; fitCanvas()
+  // still recomputes correctly either way via the resize/fullscreenchange
+  // listeners already wired up.
+  if(!(window.matchMedia('(hover:none)').matches && window.innerWidth>window.innerHeight)) return;
+  const target=document.documentElement;
+  try{ (target.requestFullscreen||target.webkitRequestFullscreen)?.call(target)?.catch?.(()=>{}); }catch(e){}
+}
+function exitGameFullscreen(){
+  if(!isFullscreen()) return;
+  try{ (document.exitFullscreen||document.webkitExitFullscreen)?.call(document)?.catch?.(()=>{}); }catch(e){}
+}
 el('startBtn').onclick=()=>{
   ac(); applyCharacter();
   score=0; gameOver=false; win=false; running=true;
@@ -1566,6 +1583,7 @@ el('startBtn').onclick=()=>{
   el('select').classList.add('hidden');
   el('playArea').classList.remove('hidden');
   document.body.classList.add('playing');
+  requestGameFullscreen();
   SFX.shield();
 };
 el('restartBtn').onclick=()=>{
@@ -1577,6 +1595,7 @@ el('menuBtn').onclick=()=>{
   el('playArea').classList.add('hidden');
   el('select').classList.remove('hidden');
   document.body.classList.remove('playing');
+  exitGameFullscreen();
   renderChars();
   renderLevelPick();
 };
