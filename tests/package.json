@@ -1,0 +1,11 @@
+{
+  "name": "games-checks",
+  "private": true,
+  "description": "Reusable browser-based smoke/regression checks for Pixel Quest, Pinball, and the landing page.",
+  "scripts": {
+    "check": "node check.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
