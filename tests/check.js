@@ -168,6 +168,12 @@ async function checkPixelQuest(browser) {
         const rowVisible = await page.evaluate(() => getComputedStyle(document.getElementById('btnRow')).display !== 'none');
         log(area, 'Desktop menu row (Fullscreen/Music/SFX/Restart/Menu/FPS) visible', rowVisible);
 
+        // headless Chromium doesn't reliably grant real fullscreen, so this
+        // only proves the click doesn't throw — not that fullscreen engages
+        let fsErr = null;
+        try { await page.locator('#fsBtn').click(); await page.waitForTimeout(100); } catch (e) { fsErr = e.message; }
+        log(area, 'Fullscreen button clickable without throwing', !fsErr, fsErr || '');
+
         const musicBefore = await page.locator('#musicBtn').textContent();
         await page.locator('#musicBtn').click();
         const musicAfter = await page.locator('#musicBtn').textContent();
