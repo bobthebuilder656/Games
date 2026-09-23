@@ -167,8 +167,12 @@ async function checkPixelQuest(browser) {
         const labelAtPicker = await page.locator('#backLink').textContent();
         log(area, 'Corner link relabels back to "Menu" once back at the picker', labelAtPicker.includes('Menu'), labelAtPicker);
 
-        const hrefAtPicker = await page.locator('#backLink').getAttribute('href');
-        log(area, 'Corner link still points to index.html for a real exit from the picker', hrefAtPicker === 'index.html');
+        // use the resolved .href property, not getAttribute — Netlify
+        // rewrites "index.html" links to pretty URLs ("/") in production,
+        // so the raw attribute differs between local files and the live
+        // site even though both correctly point at the landing page
+        const hrefAtPicker = await page.evaluate(() => document.getElementById('backLink').href);
+        log(area, 'Corner link still points to the arcade landing page for a real exit from the picker', hrefAtPicker.endsWith('index.html') || hrefAtPicker.endsWith('/'), hrefAtPicker);
       } else {
         await page.keyboard.down('ArrowRight');
         await page.waitForTimeout(300);
@@ -326,8 +330,13 @@ async function checkLanding(browser) {
 
     const badges = await page.locator('.device').allTextContents();
     log(area, 'Both device-suitability badges present', badges.length === 2, JSON.stringify(badges));
-    const hrefs = await page.evaluate(() => [...document.querySelectorAll('a.world')].map(a => a.getAttribute('href')));
-    log(area, 'Both game links present', hrefs.includes('platformer.html') && hrefs.includes('pinball.html'));
+    // resolved .href, not getAttribute — Netlify serves pretty URLs
+    // ("/platformer") in production while the raw attribute in the source
+    // is "platformer.html"; both are correct, just at different layers
+    const hrefs = await page.evaluate(() => [...document.querySelectorAll('a.world')].map(a => a.href));
+    const hasPf = hrefs.some(h => h.includes('platformer'));
+    const hasPb = hrefs.some(h => h.includes('pinball'));
+    log(area, 'Both game links present', hasPf && hasPb, JSON.stringify(hrefs));
     await shot(page, `idx-${profName}.png`);
     log(area, 'no console errors (incl. animated-background race condition)', errors.length === 0, errors.slice(0, 3).join(' | '));
     await ctx.close();
