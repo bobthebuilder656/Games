@@ -42,6 +42,7 @@
     display:inline-block; margin-top:16px; padding:6px 16px; border-radius:20px; font-size:13px;
     color:#d8d5ff; background:rgba(255,255,255,.07); border:1px solid var(--line);
   }
+  .welcome[hidden] { display:none; }   /* inline-block above would otherwise beat the hidden attribute */
 
   /* ---------- the stage: one scene, two worlds ---------- */
   .stage {
@@ -118,7 +119,7 @@
     box-shadow:-7px 0 20px rgba(46,213,115,.7), 7px 0 20px rgba(255,46,136,.7);
   }
   .surprise {
-    position:absolute; z-index:5; left:50%; top:50%; transform:translate(-50%,-50%);
+    position:absolute; z-index:5; left:50%; top:30%; transform:translate(-50%,-50%);   /* up in the scenes, clear of the titles */
     min-width:150px; padding:11px 18px; border-radius:30px; cursor:pointer;
     font:bold 12.5px/1 'Trebuchet MS', Arial, sans-serif; letter-spacing:1.5px; color:#fff;
     background:#0d0a26; border:2px solid transparent;
@@ -143,6 +144,7 @@
     .seam { left:0; right:0; top:50%; bottom:auto; width:auto; height:2px; transform:translateY(-1px);
       background:linear-gradient(to right, transparent, rgba(255,255,255,.85) 15%, rgba(255,255,255,.85) 85%, transparent);
       box-shadow:0 -7px 20px rgba(46,213,115,.7), 0 7px 20px rgba(255,46,136,.7); }
+    .surprise { top:50%; }   /* stacked: sits on the horizontal seam between the two cards */
     body { padding:28px 14px 32px; }
     .name { font-size:26px; }
   }
